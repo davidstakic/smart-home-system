@@ -5,7 +5,6 @@
 from datetime import datetime
 from configparser import ConfigParser
 import time
-import threading
 
 try:
     import RPi.GPIO as GPIO
@@ -18,7 +17,7 @@ except ImportError:
 class Config:
     def __init__(self, config_file='pi1_config.ini'):
         self.config = ConfigParser()
-        self.config.read(config_file)
+        self.config.read(config_file, encoding='utf-8')
 
     def is_simulated(self, device):
         try:
@@ -208,7 +207,67 @@ class MembraneSwitch:
 # AKTUATORI
 # ============================================================================
 
-# ...
+class DoorLight:
+    """DL - Door Light (LED diode)"""
+    def __init__(self, gpio_pin, simulate=False):
+        self.gpio_pin = gpio_pin
+        self.simulate = simulate
+        self.is_on = False
+        
+        if not simulate:
+            GPIO.setup(gpio_pin, GPIO.OUT)
+            GPIO.output(gpio_pin, GPIO.LOW)
+            
+    def turn_on(self):
+        self.is_on = True
+        
+        if not self.simulate:
+            GPIO.output(self.gpio_pin, GPIO.HIGH)
+            
+        print("DL (Svetlo): UKLJUČENO")
+        
+    def turn_off(self):
+        self.is_on = False
+        
+        if not self.simulate:
+            GPIO.output(self.gpio_pin, GPIO.LOW)
+            
+        print("DL (Svetlo): ISKLJUČENO")
+        
+    def toggle(self):
+        if self.is_on:
+            self.turn_off()
+        else:
+            self.turn_on()
+    
+    
+class DoorBuzzer:
+    """DB - Door Buzzer"""
+    def __init__(self, gpio_pin, simulate=False):
+        self.gpio_pin = gpio_pin
+        self.simulate = simulate
+        
+        if not simulate:
+            GPIO.setup(gpio_pin, GPIO.OUT)
+            GPIO.output(gpio_pin, GPIO.LOW)
+    
+    def beep(self, duration=0.2, times=3):
+        for _ in range(times):
+            if not self.simulate:
+                GPIO.output(self.gpio_pin, GPIO.HIGH)
+            time.sleep(duration)
+            if not self.simulate:
+                GPIO.output(self.gpio_pin, GPIO.LOW)
+            time.sleep(0.1)
+        print(f"DB (Buzzer): {times}x beep")
+    
+    def continuous(self, duration=2.0):
+        if not self.simulate:
+            GPIO.output(self.gpio_pin, GPIO.HIGH)
+        time.sleep(duration)
+        if not self.simulate:
+            GPIO.output(self.gpio_pin, GPIO.LOW)
+        print(f"DB (Buzzer): kontinuirano {duration}s")
 
 # ============================================================================
 # GLAVNI KONTROLER PI1
@@ -258,7 +317,8 @@ class PI1_Controller:
         )
 
         # Aktuatori
-        # ...
+        self.door_light = DoorLight(dl_pin, self.config.is_simulated('DL'))
+        self.buzzer = DoorBuzzer(db_pin, self.config.is_simulated('DB'))
 
         self.running = True
 
@@ -314,7 +374,16 @@ class PI1_Controller:
 
                 if choice == "1":
                     self.read_all_sensors()
-                # ... (dodati za rad aktuatora)
+                elif choice == "2":
+                    self.door_light.turn_on()
+                elif choice == "3":
+                    self.door_light.turn_off()
+                elif choice == "4":
+                    self.door_light.toggle()
+                elif choice == "5":
+                    self.buzzer.beep(0.2, 3)
+                elif choice == "6":
+                    self.buzzer.continuous(2.0)
                 elif choice == "0":
                     print("Izlaz...")
                     self.running = False
