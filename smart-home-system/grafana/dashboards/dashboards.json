@@ -1,0 +1,108 @@
+{
+    "id": null,
+    "title": "Smart Door – Sensors & Actuators",
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "5s",
+    "panels": [
+      {
+        "type": "stat",
+        "title": "Door Button (DS1)",
+        "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_button\") |> filter(fn: (r) => r._field == \"value\") |> last()",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": { "calcs": ["last"] },
+          "mappingType": "value",
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "RELEASED" }, "1": { "text": "PRESSED" } } }
+          ]
+        }
+      },
+      {
+        "type": "timeseries",
+        "title": "Door Distance (DUS1)",
+        "gridPos": { "x": 4, "y": 0, "w": 8, "h": 6 },
+        "targets": [
+          {
+            "query": "from(bucket: \"iot_sensors\") |> range(start: -15m) |> filter(fn: (r) => r._measurement == \"door_distance\") |> filter(fn: (r) => r._field == \"value\")",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "lengthcm"
+          }
+        }
+      },
+      {
+        "type": "stat",
+        "title": "Door Light (DL)",
+        "gridPos": { "x": 0, "y": 4, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_light\") |> filter(fn: (r) => r._field == \"value\") |> last()",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "OFF" }, "1": { "text": "ON" } } }
+          ]
+        }
+      },
+      {
+        "type": "stat",
+        "title": "Door Buzzer (DB)",
+        "gridPos": { "x": 0, "y": 8, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_buzzer\") |> filter(fn: (r) => r._field == \"value\") |> last()",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "OFF" }, "1": { "text": "ON" } } }
+          ]
+        }
+      },
+      {
+        "type": "stat",
+        "title": "Door Motion (DPIR1)",
+        "gridPos": { "x": 4, "y": 6, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_motion\") |> filter(fn: (r) => r._field == \"value\") |> last()",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "NO MOTION" }, "1": { "text": "MOTION" } } }
+          ]
+        }
+      },
+      {
+        "type": "stat",
+        "title": "Door Membrane Switch (DMS)",
+        "gridPos": { "x": 8, "y": 6, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_membrane\") |> filter(fn: (r) => r._field == \"value\") |> last()",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "RELEASED" }, "1": { "text": "PRESSED" } } }
+          ]
+        }
+      }
+    ]
+  }
