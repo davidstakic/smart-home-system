@@ -1,11 +1,8 @@
-# ============================================================================
-# PI1: DS1, DPIR1, DUS1, DMS, DL, DB
-# ============================================================================
-
 from datetime import datetime
-from sensors import *
-from actuators import *
-from config import Config
+from components.sensors import *
+from components.actuators import *
+from config.config import Config
+from mqtt_batch_sender import MQTTBatchSender
 
 try:
     import RPi.GPIO as GPIO
@@ -16,7 +13,7 @@ except ImportError:
 
 
 class PI1_Controller:
-    def __init__(self, config_file='pi1_config.ini'):
+    def __init__(self, config_file='smart-home-system\pi1_config.ini'):
         self.config = Config(config_file)
 
         print("=" * 70)
@@ -26,7 +23,6 @@ class PI1_Controller:
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
-        # Pinovi iz .ini
         ds1_pin = self.config.get_pin('DS1_PIN')
         dpir1_pin = self.config.get_pin('DPIR1_PIN')
         dus1_trigger = self.config.get_pin('DUS1_TRIGGER')
@@ -61,17 +57,49 @@ class PI1_Controller:
         # Aktuatori
         self.door_light = DoorLight(dl_pin, self.config.is_simulated('DL'))
         self.buzzer = DoorBuzzer(db_pin, self.config.is_simulated('DB'))
+        
+        self.device_info = self.config.get_device_info()
+        mqtt_cfg = self.config.get_mqtt_config()
+
+        self.mqtt_sender = MQTTBatchSender(
+            mqtt_cfg["broker"],
+            mqtt_cfg["port"],
+            mqtt_cfg["base_topic"],
+            mqtt_cfg["batch_size"],
+            mqtt_cfg["send_interval"]
+        )
 
         self.running = True
+        
+    def _send_measurement(self, sensor_type, value):
+        payload = {
+            "pi_id": self.device_info["pi_id"],
+            "device_name": self.device_info["device_name"],
+            "sensor_type": sensor_type,
+            "simulated": self.config.is_simulated(sensor_type),
+            "value": value
+        }
+        self.mqtt_sender.enqueue(payload)
 
     def read_all_sensors(self):
-        """Ulazne podatke sa SVAKOG senzora ispisati u konzoli (KT1 uslov)."""
         ts = datetime.now().strftime("%H:%M:%S")
         print(f"\n[{ts}] *** STANJE SENZORA NA PI1 ***")
-        print(f"  DS1  (Door Button)     -> {self.door_sensor.read()}")
-        print(f"  DPIR1(Door Motion)     -> {self.motion_sensor.read()}")
-        print(f"  DUS1 (Ultrasonic dist) -> {self.ultrasonic.read()}")
-        print(f"  DMS  (Membrane Switch) -> {self.membrane_switch.read()}")
+
+        v = self.door_sensor.read()
+        print(f"  DS1  (Door Button)     -> {v}")
+        self._send_measurement("door_button", v)
+
+        v = self.motion_sensor.read()
+        print(f"  DPIR1(Door Motion)     -> {v}")
+        self._send_measurement("door_motion", v)
+
+        v = self.ultrasonic.read()
+        print(f"  DUS1 (Ultrasonic dist) -> {v}")
+        self._send_measurement("door_distance", v)
+
+        v = self.membrane_switch.read()
+        print(f"  DMS  (Membrane Switch) -> {v}")
+        self._send_measurement("door_membrane", v)
 
     def display_menu(self):
         print("\n" + "=" * 70)
@@ -118,6 +146,26 @@ class PI1_Controller:
         print("Čišćenje GPIO...")
         GPIO.cleanup()
         print("Kraj.")
+        
+    def _on_door_button_pressed(self):
+        print("[EVENT] DS1 – dugme na vratima pritisnuto")
+        self.buzzer.beep(0.1, 1)
+        self._send_measurement("door_buzzer", 1.0)
+
+    def _on_motion_started(self):
+        print("[EVENT] DPIR1 – detektovan pokret")
+        self.door_light.turn_on()
+        self._send_measurement("door_light", 1.0)
+
+    def _on_motion_stopped(self):
+        print("[EVENT] DPIR1 – nema više pokreta")
+        self.door_light.turn_off()
+        self._send_measurement("door_light", 0.0)
+
+    def _on_membrane_pressed(self):
+        print("[EVENT] DMS – membranski prekidač pritisnut")
+        self.buzzer.beep(0.2, 2)
+        self._send_measurement("door_buzzer", 1.0)
 
 
 if __name__ == "__main__":
