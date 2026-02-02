@@ -10,10 +10,12 @@ client = InfluxDBClient(
 
 write_api = client.write_api(write_options=SYNCHRONOUS)
 
-
 def write_sensor_data(payload: dict):
+    """Write sensor/actuator data to InfluxDB"""
+    measurement = payload["sensor_type"]
+
     point = (
-        Point(payload["sensor_type"])
+        Point(measurement)
         .tag("pi_id", payload["pi_id"])
         .tag("device_name", payload["device_name"])
         .tag("simulated", str(payload["simulated"]))

@@ -1,108 +1,1164 @@
 {
-    "id": null,
-    "title": "Smart Door – Sensors & Actuators",
-    "timezone": "browser",
-    "schemaVersion": 38,
-    "version": 1,
-    "refresh": "5s",
-    "panels": [
+  "annotations": {
+    "list": [
       {
-        "type": "stat",
-        "title": "Door Button (DS1)",
-        "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
-        "targets": [
-          {
-            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_button\") |> filter(fn: (r) => r._field == \"value\") |> last()",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "reduceOptions": { "calcs": ["last"] },
-          "mappingType": "value",
-          "mappings": [
-            { "type": "value", "options": { "0": { "text": "RELEASED" }, "1": { "text": "PRESSED" } } }
-          ]
-        }
-      },
-      {
-        "type": "timeseries",
-        "title": "Door Distance (DUS1)",
-        "gridPos": { "x": 4, "y": 0, "w": 8, "h": 6 },
-        "targets": [
-          {
-            "query": "from(bucket: \"iot_sensors\") |> range(start: -15m) |> filter(fn: (r) => r._measurement == \"door_distance\") |> filter(fn: (r) => r._field == \"value\")",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "lengthcm"
-          }
-        }
-      },
-      {
-        "type": "stat",
-        "title": "Door Light (DL)",
-        "gridPos": { "x": 0, "y": 4, "w": 4, "h": 4 },
-        "targets": [
-          {
-            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_light\") |> filter(fn: (r) => r._field == \"value\") |> last()",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "mappings": [
-            { "type": "value", "options": { "0": { "text": "OFF" }, "1": { "text": "ON" } } }
-          ]
-        }
-      },
-      {
-        "type": "stat",
-        "title": "Door Buzzer (DB)",
-        "gridPos": { "x": 0, "y": 8, "w": 4, "h": 4 },
-        "targets": [
-          {
-            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_buzzer\") |> filter(fn: (r) => r._field == \"value\") |> last()",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "mappings": [
-            { "type": "value", "options": { "0": { "text": "OFF" }, "1": { "text": "ON" } } }
-          ]
-        }
-      },
-      {
-        "type": "stat",
-        "title": "Door Motion (DPIR1)",
-        "gridPos": { "x": 4, "y": 6, "w": 4, "h": 4 },
-        "targets": [
-          {
-            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_motion\") |> filter(fn: (r) => r._field == \"value\") |> last()",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "mappings": [
-            { "type": "value", "options": { "0": { "text": "NO MOTION" }, "1": { "text": "MOTION" } } }
-          ]
-        }
-      },
-      {
-        "type": "stat",
-        "title": "Door Membrane Switch (DMS)",
-        "gridPos": { "x": 8, "y": 6, "w": 4, "h": 4 },
-        "targets": [
-          {
-            "query": "from(bucket: \"iot_sensors\") |> range(start: -5m) |> filter(fn: (r) => r._measurement == \"door_membrane\") |> filter(fn: (r) => r._field == \"value\") |> last()",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "mappings": [
-            { "type": "value", "options": { "0": { "text": "RELEASED" }, "1": { "text": "PRESSED" } } }
-          ]
-        }
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
       }
     ]
-  }
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": [],
+      "title": "🔧 Actuator Control",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-red",
+                  "index": 0,
+                  "text": "OFF"
+                },
+                "1": {
+                  "color": "dark-yellow",
+                  "index": 1,
+                  "text": "ON"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              },
+              {
+                "color": "dark-yellow",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_light\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> last()\n  |> yield(name: \"last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "💡 Door Light (DL) - Status",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<div style=\"text-align: center; padding: 20px; font-family: Arial;\">\n  <h3 style=\"margin-bottom: 20px;\">💡 Light Control</h3>\n\n  <button onclick=\"controlLight('on')\" \n          style=\"background: #4CAF50; color: white; border: none; padding: 15px 30px; \n                 margin: 5px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 120px;\">\n    🟢 ON\n  </button>\n\n  <button onclick=\"controlLight('off')\" \n          style=\"background: #f44336; color: white; border: none; padding: 15px 30px; \n                 margin: 5px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 120px;\">\n    🔴 OFF\n  </button>\n\n  <button onclick=\"controlLight('toggle')\" \n          style=\"background: #2196F3; color: white; border: none; padding: 15px 30px; \n                 margin: 5px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 120px;\">\n    🔄 TOGGLE\n  </button>\n\n  <div id=\"light-status\" style=\"margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 5px;\"></div>\n</div>\n\n<script>\nfunction controlLight(action) {\n  fetch('http://localhost:5001/api/actuator/light', {\n    method: 'POST',\n    headers: {'Content-Type': 'application/json'},\n    body: JSON.stringify({action: action})\n  })\n  .then(response => response.json())\n  .then(data => {\n    document.getElementById('light-status').innerHTML = \n      '<span style=\"color: green;\">✅ Command sent: ' + action.toUpperCase() + '</span>';\n    setTimeout(() => {\n      document.getElementById('light-status').innerHTML = '';\n    }, 3000);\n  })\n  .catch(error => {\n    document.getElementById('light-status').innerHTML = \n      '<span style=\"color: red;\">❌ Error: ' + error + '</span>';\n  });\n}\n</script>",
+        "mode": "html"
+      },
+      "pluginVersion": "11.0.0",
+      "title": "💡 Door Light - Control",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-blue",
+                  "index": 0,
+                  "text": "SILENT"
+                },
+                "1": {
+                  "color": "dark-orange",
+                  "index": 1,
+                  "text": "ACTIVE"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              },
+              {
+                "color": "dark-orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_buzzer\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> last()\n  |> yield(name: \"last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "🔊 Door Buzzer (DB) - Status",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<div style=\"text-align: center; padding: 20px; font-family: Arial;\">\n  <h3 style=\"margin-bottom: 20px;\">🔊 Buzzer Control</h3>\n\n  <button onclick=\"controlBuzzer('beep', 3, 0.2)\" \n          style=\"background: #FF9800; color: white; border: none; padding: 15px 20px; \n                 margin: 5px; border-radius: 5px; cursor: pointer; font-size: 14px; width: 140px;\">\n    🔔 Short Beep\n  </button>\n\n  <button onclick=\"controlBuzzer('beep', 5, 0.5)\" \n          style=\"background: #FF5722; color: white; border: none; padding: 15px 20px; \n                 margin: 5px; border-radius: 5px; cursor: pointer; font-size: 14px; width: 140px;\">\n    🔔🔔 Long Beep\n  </button>\n\n  <button onclick=\"controlBuzzer('beep', 10, 0.1)\" \n          style=\"background: #E91E63; color: white; border: none; padding: 15px 20px; \n                 margin: 5px; border-radius: 5px; cursor: pointer; font-size: 14px; width: 140px;\">\n    🚨 Alarm\n  </button>\n\n  <div id=\"buzzer-status\" style=\"margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 5px;\"></div>\n</div>\n\n<script>\nfunction controlBuzzer(action, times, duration) {\n  fetch('http://localhost:5001/api/actuator/buzzer', {\n    method: 'POST',\n    headers: {'Content-Type': 'application/json'},\n    body: JSON.stringify({action: action, times: times, duration: duration})\n  })\n  .then(response => response.json())\n  .then(data => {\n    document.getElementById('buzzer-status').innerHTML = \n      '<span style=\"color: green;\">✅ Buzzer activated: ' + times + 'x</span>';\n    setTimeout(() => {\n      document.getElementById('buzzer-status').innerHTML = '';\n    }, 3000);\n  })\n  .catch(error => {\n    document.getElementById('buzzer-status').innerHTML = \n      '<span style=\"color: red;\">❌ Error: ' + error + '</span>';\n  });\n}\n</script>",
+        "mode": "html"
+      },
+      "pluginVersion": "11.0.0",
+      "title": "🔊 Door Buzzer - Control",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 101,
+      "panels": [],
+      "title": "📊 Sensors - Current State",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-red",
+                  "index": 0,
+                  "text": "Not Pressed"
+                },
+                "1": {
+                  "color": "dark-green",
+                  "index": 1,
+                  "text": "Pressed"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              },
+              {
+                "color": "dark-green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_button\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> last()\n  |> yield(name: \"last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "🔘 Door Button (DS1)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-blue",
+                  "index": 0,
+                  "text": "No Motion"
+                },
+                "1": {
+                  "color": "dark-orange",
+                  "index": 1,
+                  "text": "Motion Detected"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              },
+              {
+                "color": "dark-orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_motion\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> last()\n  |> yield(name: \"last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "👁️ PIR Motion Sensor (DPIR1)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-purple",
+                  "index": 0,
+                  "text": "Not Pressed"
+                },
+                "1": {
+                  "color": "dark-yellow",
+                  "index": 1,
+                  "text": "Pressed"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              },
+              {
+                "color": "dark-yellow",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 8
+      },
+      "id": 7,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_membrane\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> last()\n  |> yield(name: \"last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "⚡ Membrane Switch (DMS)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 200,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "lengthcm"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 8
+      },
+      "id": 8,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 200,
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_distance\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> last()\n  |> yield(name: \"last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "📏 Current Distance (DUS1)",
+      "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 102,
+      "panels": [],
+      "title": "📈 Time Series - History",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Distance (cm)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "lengthcm"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull",
+            "max",
+            "min"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_distance\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"mean\")",
+          "refId": "A"
+        }
+      ],
+      "title": "📏 Ultrasonic Sensor - Distance Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-red",
+                  "index": 0,
+                  "text": "OFF"
+                },
+                "1": {
+                  "color": "dark-green",
+                  "index": 1,
+                  "text": "ON"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "max": 1.2,
+          "min": -0.2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_button\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"door_button\")",
+          "refId": "A"
+        }
+      ],
+      "title": "🔘 Door Button - Time Series",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "index": 0,
+                  "text": "No Motion"
+                },
+                "1": {
+                  "index": 1,
+                  "text": "Motion Detected"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "max": 1.2,
+          "min": -0.2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_motion\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"motion\")",
+          "refId": "A"
+        }
+      ],
+      "title": "👁️ PIR Motion Sensor - Time Series",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-red",
+                  "index": 0,
+                  "text": "OFF"
+                },
+                "1": {
+                  "color": "dark-yellow",
+                  "index": 1,
+                  "text": "ON"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "max": 1.2,
+          "min": -0.2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_light\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"light\")",
+          "refId": "A"
+        }
+      ],
+      "title": "💡 Door Light - Time Series",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-blue",
+                  "index": 0,
+                  "text": "OFF"
+                },
+                "1": {
+                  "color": "dark-orange",
+                  "index": 1,
+                  "text": "ON"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "max": 1.2,
+          "min": -0.2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 31
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"door_buzzer\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> filter(fn: (r) => r[\"pi_id\"] == \"PI1\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"buzzer\")",
+          "refId": "A"
+        }
+      ],
+      "title": "🔊 Door Buzzer - Time Series",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": [
+    "iot",
+    "smart-home",
+    "sensors",
+    "actuators",
+    "pi1"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "InfluxDB",
+          "value": "InfluxDB"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "DS_INFLUXDB",
+        "options": [],
+        "query": "influxdb",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "smart_home",
+          "value": "smart_home"
+        },
+        "hide": 0,
+        "label": "Bucket",
+        "name": "bucket",
+        "options": [
+          {
+            "selected": true,
+            "text": "smart_home",
+            "value": "smart_home"
+          }
+        ],
+        "query": "smart_home",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m"
+    ]
+  },
+  "timezone": "browser",
+  "title": "PI1 - Smart Door Complete Dashboard",
+  "uid": "pi1-smart-door-complete-en",
+  "version": 1,
+  "weekStart": ""
+}

@@ -1,4 +1,6 @@
 from datetime import datetime
+from pathlib import Path
+import threading
 from components.sensors import *
 from components.actuators import *
 from config.config import Config
@@ -13,8 +15,12 @@ except ImportError:
 
 
 class PI1_Controller:
-    def __init__(self, config_file='smart-home-system\pi1_config.ini'):
-        self.config = Config(config_file)
+    def __init__(self, config_file=None):
+        if config_file is None:
+            base_dir = Path(__file__).resolve().parent
+            config_file = base_dir / "config" / "pi1_config.ini"
+
+        self.config = Config(str(config_file))
 
         print("=" * 70)
         print("PI1 - PAMETNA VRATA (KT1) - EVENT-DRIVEN")
@@ -48,6 +54,13 @@ class PI1_Controller:
             dus1_echo,
             self.config.is_simulated('DUS1')
         )
+        self.ultrasonic_stop_event = threading.Event()
+        self.ultrasonic_thread = threading.Thread(
+            target=self._run_ultrasonic_loop,
+            args=(self.ultrasonic, 0.5, self.ultrasonic_stop_event),
+            daemon=True
+        )
+        self.ultrasonic_thread.start()
         self.membrane_switch = MembraneSwitch(
             dms_pin,
             self.config.is_simulated('DMS'),
@@ -72,14 +85,25 @@ class PI1_Controller:
         self.running = True
         
     def _send_measurement(self, sensor_type, value):
-        payload = {
-            "pi_id": self.device_info["pi_id"],
-            "device_name": self.device_info["device_name"],
-            "sensor_type": sensor_type,
-            "simulated": self.config.is_simulated(sensor_type),
-            "value": value
-        }
+        if isinstance(value, dict):
+            payload = {
+                "pi_id": self.device_info["pi_id"],
+                "device_name": self.device_info["device_name"],
+                "sensor_type": sensor_type,
+                "simulated": self.config.is_simulated(sensor_type),
+                **value
+            }
+        else:
+            payload = {
+                "pi_id": self.device_info["pi_id"],
+                "device_name": self.device_info["device_name"],
+                "sensor_type": sensor_type,
+                "simulated": self.config.is_simulated(sensor_type),
+                "value": value
+            }
+        
         self.mqtt_sender.enqueue(payload)
+
 
     def read_all_sensors(self):
         ts = datetime.now().strftime("%H:%M:%S")
@@ -100,6 +124,8 @@ class PI1_Controller:
         v = self.membrane_switch.read()
         print(f"  DMS  (Membrane Switch) -> {v}")
         self._send_measurement("door_membrane", v)
+
+        self._send_measurement("door_light", 1.0 if self.door_light.is_on else 0.0 )
 
     def display_menu(self):
         print("\n" + "=" * 70)
@@ -124,14 +150,21 @@ class PI1_Controller:
                     self.read_all_sensors()
                 elif choice == "2":
                     self.door_light.turn_on()
+                    self._send_measurement("door_light", 1.0)
                 elif choice == "3":
                     self.door_light.turn_off()
+                    self._send_measurement("door_light", 0.0)
                 elif choice == "4":
                     self.door_light.toggle()
+                    self._send_measurement("door_light", 1.0 if self.door_light.is_on else 0.0 )
                 elif choice == "5":
                     self.buzzer.beep(0.2, 3)
+                    self._send_measurement("door_buzzer", 1.0)
+                    # threading.Thread(target=self.buzzer.beep, args=(0.2, 3), daemon=True).start()
                 elif choice == "6":
                     self.buzzer.continuous(2.0)
+                    self._send_measurement("door_buzzer", 1.0)
+                    # threading.Thread(target=self.buzzer.continuous, args=(2.0), daemon=True).start()
                 elif choice == "0":
                     print("Izlaz...")
                     self.running = False
@@ -143,29 +176,82 @@ class PI1_Controller:
             self.cleanup()
 
     def cleanup(self):
+        print("Zaustavljanje ultrasonic thread-a...")
+        self.ultrasonic_stop_event.set()
+        self.ultrasonic_thread.join()
+        
         print("Čišćenje GPIO...")
         GPIO.cleanup()
         print("Kraj.")
         
     def _on_door_button_pressed(self):
-        print("[EVENT] DS1 – dugme na vratima pritisnuto")
+        print("[EVENT] DS1 – door button pressed")
         self.buzzer.beep(0.1, 1)
-        self._send_measurement("door_buzzer", 1.0)
+        # threading.Thread(target=self.buzzer.beep, args=(0.1, 1), daemon=True).start()
+        
+        self._send_measurement("door_buzzer", {
+            "value": 1.0,
+            "beep_count": 1,
+            "duration": 0.1,
+            "trigger": "door_button"
+        })
 
     def _on_motion_started(self):
-        print("[EVENT] DPIR1 – detektovan pokret")
+        print("[EVENT] DPIR1 – motion detected")
         self.door_light.turn_on()
-        self._send_measurement("door_light", 1.0)
+        
+        self._send_measurement("door_light", {
+            "value": 1.0,
+            "state": "on",
+            "action": "turn_on",
+            "trigger": "motion"
+        })
 
     def _on_motion_stopped(self):
-        print("[EVENT] DPIR1 – nema više pokreta")
+        print("[EVENT] DPIR1 – no more motion")
         self.door_light.turn_off()
-        self._send_measurement("door_light", 0.0)
+        
+        self._send_measurement("door_light", {
+            "value": 0.0,
+            "state": "off",
+            "action": "turn_off",
+            "trigger": "motion"
+        })
+
 
     def _on_membrane_pressed(self):
-        print("[EVENT] DMS – membranski prekidač pritisnut")
+        print("[EVENT] DMS – membrane switch pressed")
         self.buzzer.beep(0.2, 2)
-        self._send_measurement("door_buzzer", 1.0)
+        # threading.Thread(target=self.buzzer.beep, args=(0.2, 2), daemon=True).start()
+        
+        self._send_measurement("door_buzzer", {
+            "value": 1.0,
+            "beep_count": 2,
+            "duration": 0.2,
+            "trigger": "membrane"
+        })
+
+    def _run_ultrasonic_loop(self, sensor, delay, stop_event):
+        while not stop_event.is_set():
+            distance = sensor.read()
+            self._ultrasonic_callback(distance)
+            time.sleep(delay)
+
+    def _ultrasonic_callback(self, distance):
+        ts = datetime.now().strftime("%H:%M:%S")
+        
+        if distance < 0:
+            print(f"[{ts}] DUS1 - greška u merenju")
+        else:
+            print(f"[{ts}] DUS1 - distance = {distance} cm")
+
+        if distance != -1 and distance < 50:
+            print(f"[{ts}] ALERT - objekat blizu vrata!")
+            self.buzzer.beep(0.1, 1)
+            # threading.Thread(target=self.buzzer.beep, args=(0.1, 1), daemon=True).start()
+            self._send_measurement("door_buzzer", 1.0)
+        
+        self._send_measurement("door_distance", distance)
 
 
 if __name__ == "__main__":

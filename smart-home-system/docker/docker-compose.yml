@@ -22,7 +22,7 @@ services:
       - DOCKER_INFLUXDB_INIT_PASSWORD=admin123
       - DOCKER_INFLUXDB_INIT_ORG=iot
       - DOCKER_INFLUXDB_INIT_BUCKET=iot_sensors
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=YOUR_INFLUXDB_TOKEN
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=TOKEN
 
   grafana:
     image: grafana/grafana
@@ -33,6 +33,8 @@ services:
       - influxdb
     volumes:
       - grafana-data:/var/lib/grafana
+    environment:
+      - GF_PANELS_DISABLE_SANITIZE_HTML=true
 
 volumes:
   influxdb-data:

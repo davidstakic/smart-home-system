@@ -9,77 +9,69 @@ except ImportError:
     from mock_rpi import GPIO
     RUNNING_ON_PI = False
 
-
 class DoorSensor:
     def __init__(self, gpio_pin, simulate=False, on_press_callback=None):
         self.gpio_pin = gpio_pin
         self.simulate = simulate
         self.on_press_callback = on_press_callback
-        self.value = 0.0  # 0 = otpušten, 1 = pritisnut
+        self.value = 0
 
         if not simulate:
             GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-            GPIO.add_event_detect(
-                gpio_pin,
-                GPIO.FALLING,
-                callback=self._on_button_press,
-                bouncetime=100
-            )
+            GPIO.add_event_detect(gpio_pin, GPIO.FALLING, callback=self._on_button_press, bouncetime=100)
 
     def _on_button_press(self, channel):
-        self.value = 1.0
-        print(f"[DS1] BUTTON PRESS na GPIO {self.gpio_pin}")
+        self.value = 1
+        
+        print(f"[DS1] BUTTON PRESS on GPIO {self.gpio_pin}")
+        
         if self.on_press_callback:
             self.on_press_callback()
 
         time.sleep(0.3)
-        self.value = 0.0
+        
+        self.value = 0
 
     def read(self):
         if self.simulate:
             self.value = float(random.choice([0, 1]))
+            
         return self.value
 
-
 class MotionSensor:
-    def __init__(self, gpio_pin, simulate=False,
-                 on_motion_callback=None, on_no_motion_callback=None):
+    def __init__(self, gpio_pin, simulate=False, on_motion_callback=None, on_no_motion_callback=None):
         self.gpio_pin = gpio_pin
         self.simulate = simulate
         self.on_motion_callback = on_motion_callback
         self.on_no_motion_callback = on_no_motion_callback
-        self.value = 0.0  # 0 = nema pokreta, 1 = pokret
+        self.value = 0
 
         if not simulate:
             GPIO.setup(gpio_pin, GPIO.IN)
-            GPIO.add_event_detect(
-                gpio_pin,
-                GPIO.RISING,
-                callback=self._on_motion_detected
-            )
-            GPIO.add_event_detect(
-                gpio_pin,
-                GPIO.FALLING,
-                callback=self._on_no_motion
-            )
+            GPIO.add_event_detect(gpio_pin, GPIO.RISING, callback=self._on_motion_detected)
+            GPIO.add_event_detect(gpio_pin, GPIO.FALLING, callback=self._on_no_motion)
 
     def _on_motion_detected(self, channel):
-        self.value = 1.0
-        print(f"[DPIR1] MOTION DETECTED na GPIO {self.gpio_pin}")
+        self.value = 1
+        
+        print(f"[DPIR1] MOTION DETECTED on GPIO {self.gpio_pin}")
+        
         if self.on_motion_callback:
             self.on_motion_callback()
 
     def _on_no_motion(self, channel):
-        self.value = 0.0
-        print(f"[DPIR1] NO MOTION na GPIO {self.gpio_pin}")
+        self.value = 0
+        
+        print(f"[DPIR1] NO MOTION on GPIO {self.gpio_pin}")
+        
         if self.on_no_motion_callback:
             self.on_no_motion_callback()
 
     def read(self):
         if self.simulate:
             self.value = float(random.choice([0, 1]))
+            
         return self.value
-
 
 class UltrasonicSensor:
     def __init__(self, trigger_pin, echo_pin, simulate=False):
@@ -126,33 +118,31 @@ class UltrasonicSensor:
         except Exception:
             return -1.0
 
-
 class MembraneSwitch:
     def __init__(self, gpio_pin, simulate=False, on_press_callback=None):
         self.gpio_pin = gpio_pin
         self.simulate = simulate
         self.on_press_callback = on_press_callback
-        self.value = 0.0  # 0 = otpušten, 1 = pritisnut
+        self.value = 0
 
         if not simulate:
             GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-            GPIO.add_event_detect(
-                gpio_pin,
-                GPIO.FALLING,
-                callback=self._on_membrane_press,
-                bouncetime=100
-            )
+            GPIO.add_event_detect(gpio_pin, GPIO.FALLING, callback=self._on_membrane_press, bouncetime=100)
 
     def _on_membrane_press(self, channel):
-        self.value = 1.0
-        print(f"[DMS] PRESSED na GPIO {self.gpio_pin}")
+        self.value = 1
+        
+        print(f"[DMS] PRESSED on GPIO {self.gpio_pin}")
+        
         if self.on_press_callback:
             self.on_press_callback()
 
         time.sleep(0.3)
-        self.value = 0.0
+        
+        self.value = 0
 
     def read(self):
         if self.simulate:
             self.value = float(random.choice([0, 1]))
+            
         return self.value
