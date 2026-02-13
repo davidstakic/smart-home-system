@@ -31,3 +31,16 @@ class Config:
             "batch_size": self.config.getint("MQTT", "BATCH_SIZE"),
             "send_interval": self.config.getint("MQTT", "SEND_INTERVAL")
         }
+        
+    def get_value(self, section, key, default=None, value_type=str):
+        try:
+            if value_type == int:
+                return self.config.getint(section, key)
+            elif value_type == float:
+                return self.config.getfloat(section, key)
+            elif value_type == bool:
+                return self.config.getboolean(section, key)
+            else:
+                return self.config.get(section, key)
+        except:
+            return default
