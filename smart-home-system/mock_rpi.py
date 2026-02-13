@@ -27,7 +27,6 @@ class MockGPIO:
         print(f"[MOCK GPIO] setup(pin={pin}, dir={direction}, pud={pull_up_down})")
 
     def input(self, pin):
-        # Vrati fiksnu vrednost ili je kasnije možeš menjati ručno
         val = self.pins.get(pin, {}).get("value", self.LOW)
         print(f"[MOCK GPIO] input(pin={pin}) -> {val}")
         return val
@@ -41,6 +40,4 @@ class MockGPIO:
         print("[MOCK GPIO] cleanup()")
         self.pins.clear()
 
-
-# globalni objekat, da se ponaša kao modul RPi.GPIO
 GPIO = MockGPIO()
