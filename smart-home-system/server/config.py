@@ -1,5 +1,5 @@
 INFLUX_URL = "http://localhost:8086"
-INFLUX_TOKEN = "YOUR_INFLUXDB_TOKEN"
+INFLUX_TOKEN = "TOKEN"
 INFLUX_ORG = "iot"
 INFLUX_BUCKET = "iot_sensors"
 
