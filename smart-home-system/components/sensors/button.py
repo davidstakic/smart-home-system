@@ -8,7 +8,7 @@ except ImportError:
     from mock_rpi import GPIO
     RUNNING_ON_PI = False
 
-class DoorSensor:
+class Button:
     DOOR_CLOSED = 0
     DOOR_OPEN = 1
     INVALID_VALUE = -999
@@ -28,11 +28,11 @@ class DoorSensor:
             self.value = GPIO.input(self.gpio_pin)
         return self.value
 
-def run_door_loop(door_sensor, delay, callback, stop_event):
+def run_button_loop(button_sensor, delay, callback, stop_event):
     while True:
-        value = door_sensor.read()
-        if value not in [door_sensor.DOOR_CLOSED, door_sensor.DOOR_OPEN]:
-            value = door_sensor.INVALID_VALUE
+        value = button_sensor.read()
+        if value not in [button_sensor.DOOR_CLOSED, button_sensor.DOOR_OPEN]:
+            value = button_sensor.INVALID_VALUE
         callback(value)
         if stop_event.is_set():
             break

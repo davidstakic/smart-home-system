@@ -2,12 +2,12 @@ from datetime import datetime
 from pathlib import Path
 import threading
 
-from components.sensors.door_sensor import DoorSensor, run_door_loop
+from components.sensors.button import Button, run_button_loop
 from components.sensors.motion_sensor import MotionSensor, run_motion_loop
 from components.sensors.ultrasonic_sensor import UltrasonicSensor, run_ultrasonic_loop
 from components.sensors.membrane_switch import MembraneSwitch, run_membrane_loop
-from components.actuators.door_light import DoorLight
-from components.actuators.door_buzzer import DoorBuzzer
+from components.actuators.light import Light
+from components.actuators.buzzer import Buzzer
 from config.config import Config
 from mqtt_batch_sender import MQTTBatchSender
 
@@ -27,9 +27,7 @@ class PI1_Controller:
 
         self.config = Config(str(config_file))
 
-        print("=" * 70)
-        print("PI1 - PAMETNA VRATA (KT1) - THREAD-DRIVEN")
-        print("=" * 70)
+        print("========== PI1 ==========")
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -42,13 +40,13 @@ class PI1_Controller:
         dl_pin = self.config.get_pin('DL_PIN')
         db_pin = self.config.get_pin('DB_PIN')
 
-        self.door_sensor = DoorSensor(ds1_pin, self.config.is_simulated('DS1'))
+        self.door_sensor = Button(ds1_pin, self.config.is_simulated('DS1'))
         self.motion_sensor = MotionSensor(dpir1_pin, self.config.is_simulated('DPIR1'))
         self.ultrasonic = UltrasonicSensor(dus1_trigger, dus1_echo, self.config.is_simulated('DUS1'))
         self.membrane_switch = MembraneSwitch(dms_pin, self.config.is_simulated('DMS'))
 
-        self.door_light = DoorLight(dl_pin, self.config.is_simulated('DL'))
-        self.buzzer = DoorBuzzer(db_pin, self.config.is_simulated('DB'))
+        self.door_light = Light(dl_pin, self.config.is_simulated('DL'))
+        self.buzzer = Buzzer(db_pin, self.config.is_simulated('DB'))
 
         self.device_info = self.config.get_device_info()
         mqtt_cfg = self.config.get_mqtt_config()
@@ -94,9 +92,9 @@ class PI1_Controller:
         self._send_measurement("door_membrane", value)
 
     def start_sensors(self):
-        self.threads.append(threading.Thread(target=run_door_loop, args=(self.door_sensor, 0.5, self._door_callback, self.stop_event), daemon=True))
-        self.threads.append(threading.Thread(target=run_motion_loop, args=(self.motion_sensor, 0.5, self._motion_callback, self.stop_event), daemon=True))
-        self.threads.append(threading.Thread(target=run_ultrasonic_loop, args=(self.ultrasonic, 1.0, self._ultrasonic_callback, self.stop_event), daemon=True))
+        self.threads.append(threading.Thread(target=run_button_loop, args=(self.door_sensor, self.config.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event), daemon=True))
+        self.threads.append(threading.Thread(target=run_motion_loop, args=(self.motion_sensor, self.config.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event), daemon=True))
+        self.threads.append(threading.Thread(target=run_ultrasonic_loop, args=(self.ultrasonic, self.config.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event), daemon=True))
         self.threads.append(threading.Thread(target=run_membrane_loop, args=(self.membrane_switch, 0.5, self._membrane_callback, self.stop_event), daemon=True))
 
         for t in self.threads:
