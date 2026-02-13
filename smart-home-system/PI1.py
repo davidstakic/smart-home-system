@@ -36,14 +36,27 @@ class PI1_Controller:
         dpir1_pin = self.config.get_pin('DPIR1_PIN')
         dus1_trigger = self.config.get_pin('DUS1_TRIGGER')
         dus1_echo = self.config.get_pin('DUS1_ECHO')
-        dms_pin = self.config.get_pin('DMS_PIN')
         dl_pin = self.config.get_pin('DL_PIN')
         db_pin = self.config.get_pin('DB_PIN')
+        
+        row_pins = [
+            self.config.get_pin("R1"),
+            self.config.get_pin("R2"),
+            self.config.get_pin("R3"),
+            self.config.get_pin("R4"),
+        ]
+
+        col_pins = [
+            self.config.get_pin("C1"),
+            self.config.get_pin("C2"),
+            self.config.get_pin("C3"),
+            self.config.get_pin("C4"),
+        ]
 
         self.door_sensor = Button(ds1_pin, self.config.is_simulated('DS1'))
         self.motion_sensor = MotionSensor(dpir1_pin, self.config.is_simulated('DPIR1'))
         self.ultrasonic = UltrasonicSensor(dus1_trigger, dus1_echo, self.config.is_simulated('DUS1'))
-        self.membrane_switch = MembraneSwitch(dms_pin, self.config.is_simulated('DMS'))
+        self.membrane_switch = MembraneSwitch(row_pins, col_pins, simulate=self.config.is_simulated("DMS"))
 
         self.door_light = Light(dl_pin, self.config.is_simulated('DL'))
         self.buzzer = Buzzer(db_pin, self.config.is_simulated('DB'))
@@ -95,7 +108,7 @@ class PI1_Controller:
         self.threads.append(threading.Thread(target=run_button_loop, args=(self.door_sensor, self.config.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event), daemon=True))
         self.threads.append(threading.Thread(target=run_motion_loop, args=(self.motion_sensor, self.config.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event), daemon=True))
         self.threads.append(threading.Thread(target=run_ultrasonic_loop, args=(self.ultrasonic, self.config.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event), daemon=True))
-        self.threads.append(threading.Thread(target=run_membrane_loop, args=(self.membrane_switch, 0.5, self._membrane_callback, self.stop_event), daemon=True))
+        self.threads.append(threading.Thread(target=run_membrane_loop, args=(self.membrane_switch, self.config.get_value("SENSOR_CONFIG", "DMS_DELAY", 0.2, float), self._membrane_callback, self.stop_event), daemon=True))
 
         for t in self.threads:
             t.start()
