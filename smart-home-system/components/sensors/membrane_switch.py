@@ -1,39 +1,61 @@
-import random
 import time
+import random
 
 try:
     import RPi.GPIO as GPIO  # type: ignore
-    RUNNING_ON_PI = True
 except ImportError:
     from mock_rpi import GPIO
-    RUNNING_ON_PI = False
+
 
 class MembraneSwitch:
-    SWITCH_OFF = 0
-    SWITCH_ON = 1
-    INVALID_VALUE = -999
+    INVALID_VALUE = None
 
-    def __init__(self, gpio_pin, simulate=False):
-        self.gpio_pin = gpio_pin
+    def __init__(self, row_pins, col_pins, simulate=False):
+        self.row_pins = row_pins
+        self.col_pins = col_pins
         self.simulate = simulate
-        self.value = self.SWITCH_OFF
+
+        self.keys = [
+            ["1", "2", "3", "A"],
+            ["4", "5", "6", "B"],
+            ["7", "8", "9", "C"],
+            ["*", "0", "#", "D"]
+        ]
 
         if not simulate:
-            GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            for pin in self.row_pins:
+                GPIO.setup(pin, GPIO.OUT)
+                GPIO.output(pin, GPIO.LOW)
+
+            for pin in self.col_pins:
+                GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
     def read(self):
         if self.simulate:
-            self.value = random.choice([self.SWITCH_OFF, self.SWITCH_ON])
-        else:
-            self.value = GPIO.input(self.gpio_pin)
-        return self.value
+            return random.choice(
+                ["1","2","3","A","4","5","6","B","7","8","9","C","*","0","#","D", None]
+            )
 
-def run_membrane_loop(switch, delay, callback, stop_event):
+        for row_index, row_pin in enumerate(self.row_pins):
+            GPIO.output(row_pin, GPIO.HIGH)
+
+            for col_index, col_pin in enumerate(self.col_pins):
+                if GPIO.input(col_pin) == 1:
+                    GPIO.output(row_pin, GPIO.LOW)
+                    return self.keys[row_index][col_index]
+
+            GPIO.output(row_pin, GPIO.LOW)
+
+        return None
+    
+def run_membrane_loop(keypad, delay, callback, stop_event):
     while True:
-        value = switch.read()
-        if value not in [switch.SWITCH_OFF, switch.SWITCH_ON]:
-            value = switch.INVALID_VALUE
-        callback(value)
+        value = keypad.read()
+
+        if value is not None:
+            callback(value)
+            
         if stop_event.is_set():
             break
+
         time.sleep(delay)

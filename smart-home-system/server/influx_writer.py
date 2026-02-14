@@ -11,7 +11,6 @@ client = InfluxDBClient(
 write_api = client.write_api(write_options=SYNCHRONOUS)
 
 def write_sensor_data(payload: dict):
-    """Write sensor/actuator data to InfluxDB"""
     measurement = payload["sensor_type"]
 
     point = (
@@ -19,8 +18,16 @@ def write_sensor_data(payload: dict):
         .tag("pi_id", payload["pi_id"])
         .tag("device_name", payload["device_name"])
         .tag("simulated", str(payload["simulated"]))
-        .field("value", float(payload["value"]))
     )
+
+    value = payload["value"]
+
+    if isinstance(value, (int, float)):
+        point = point.field("value_num", float(value))
+    elif isinstance(value, bool):
+        point = point.field("value_bool", value)
+    else:
+        point = point.field("value_str", str(value))
 
     write_api.write(
         bucket=INFLUX_BUCKET,
