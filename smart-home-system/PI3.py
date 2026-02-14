@@ -35,8 +35,8 @@ class PI3_Controller:
         green_pin = self.config.get_pin("LED_GREEN")
         blue_pin = self.config.get_pin("LED_BLUE")
         ir_pin = self.config.get_pin("IR_PIN")
-        dht1_pin = self.config.get_pin("DTH1_PIN")
-        dht2_pin = self.config.get_pin("DTH2_PIN")
+        dht1_pin = self.config.get_pin("DHT1_PIN")
+        dht2_pin = self.config.get_pin("DHT2_PIN")
         dpir3_pin = self.config.get_pin("DPIR3_PIN")
 
         self.dht1 = DHTSensor(dht1_pin, self.config.is_simulated("DHT1"))
@@ -45,7 +45,8 @@ class PI3_Controller:
         self.ir_sensor = IRReceiver(ir_pin, self.config.is_simulated("IR"))
 
         self.rgb_led = RGBLed(red_pin, green_pin, blue_pin, simulate=self.config.is_simulated("BRGB"))
-        self.lcd = LCD16x2(i2c_address=self.config.get_value("LCD_CONFIG", "I2C_ADDRESS", 0x27, int), simulate=self.config.is_simulated("LCD"))
+        self.lcd = LCD16x2(address=self.config.get_value("LCD_CONFIG", "I2C_ADDRESS", 0x27, int),
+                           simulate=self.config.is_simulated("LCD"))
 
         self.device_info = self.config.get_device_info()
         mqtt_cfg = self.config.get_mqtt_config()
