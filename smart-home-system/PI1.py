@@ -59,7 +59,7 @@ class PI1_Controller:
         self.membrane_switch = MembraneSwitch(row_pins, col_pins, simulate=self.config.is_simulated("DMS"))
 
         self.door_light = Light(dl_pin, self.config.is_simulated('DL'))
-        self.buzzer = Buzzer(db_pin, self.config.is_simulated('DB'))
+        self.buzzer = Buzzer(db_pin, self.config.is_simulated('DB'), state_callback=lambda val: self._send_measurement("door_buzzer", val))
 
         self.device_info = self.config.get_device_info()
         mqtt_cfg = self.config.get_mqtt_config()
@@ -136,10 +136,8 @@ class PI1_Controller:
                     self._send_measurement("door_light", 1.0 if self.door_light.is_on else 0.0)
                 elif choice == "4":
                     threading.Thread(target=self.buzzer.beep, args=(0.2, 3), daemon=True).start()
-                    self._send_measurement("door_buzzer", 1.0)
                 elif choice == "5":
                     threading.Thread(target=self.buzzer.continuous, args=(2.0,), daemon=True).start()
-                    self._send_measurement("door_buzzer", 1.0)
                 elif choice == "0":
                     print("Izlaz...")
                     break
