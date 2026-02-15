@@ -79,7 +79,7 @@ class PI3_Controller:
         self._send_measurement("master_dht_temperature", temperature)
 
     def _motion_callback(self, value):
-        self._send_measurement("livingroom_motion", value)
+        self._send_measurement("door_motion", value)
 
     def _ir_callback(self, value):
         self._send_measurement("bedroom_ir", value)
