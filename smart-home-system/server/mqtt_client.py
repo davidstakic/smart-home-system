@@ -18,7 +18,7 @@ def on_message(client, userdata, msg):
             return
 
         write_sensor_data(payload)
-        print(f"[MQTT SENSOR] {payload['sensor_type']} = {payload.get('value')}")
+        # print(f"[MQTT SENSOR] {payload['sensor_type']} = {payload.get('value')}")
 
     except Exception as e:
         print(f"[MQTT SENSOR] Error: {e}")

@@ -35,6 +35,9 @@ services:
       - grafana-data:/var/lib/grafana
     environment:
       - GF_PANELS_DISABLE_SANITIZE_HTML=true
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
 
 volumes:
   influxdb-data:

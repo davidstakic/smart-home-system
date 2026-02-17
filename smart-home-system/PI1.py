@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 import threading
+import time
 
 from components.sensors.button import Button, run_button_loop
 from components.sensors.motion_sensor import MotionSensor, run_motion_loop
@@ -105,10 +106,10 @@ class PI1_Controller:
         self._send_measurement("door_membrane", value)
 
     def start_sensors(self):
-        self.threads.append(threading.Thread(target=run_button_loop, args=(self.door_sensor, self.config.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event), daemon=True))
-        self.threads.append(threading.Thread(target=run_motion_loop, args=(self.motion_sensor, self.config.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event), daemon=True))
-        self.threads.append(threading.Thread(target=run_ultrasonic_loop, args=(self.ultrasonic, self.config.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event), daemon=True))
-        self.threads.append(threading.Thread(target=run_membrane_loop, args=(self.membrane_switch, self.config.get_value("SENSOR_CONFIG", "DMS_DELAY", 0.2, float), self._membrane_callback, self.stop_event), daemon=True))
+        # self.threads.append(threading.Thread(target=run_button_loop, args=(self.door_sensor, self.config.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event), daemon=True))
+        # self.threads.append(threading.Thread(target=run_motion_loop, args=(self.motion_sensor, self.config.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event), daemon=True))
+        # self.threads.append(threading.Thread(target=run_ultrasonic_loop, args=(self.ultrasonic, self.config.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event), daemon=True))
+        # self.threads.append(threading.Thread(target=run_membrane_loop, args=(self.membrane_switch, self.config.get_value("SENSOR_CONFIG", "DMS_DELAY", 0.2, float), self._membrane_callback, self.stop_event), daemon=True))
 
         for t in self.threads:
             t.start()
@@ -116,12 +117,19 @@ class PI1_Controller:
     def actuator_menu(self):
         try:
             while True:
-                print("\n=== AKTUATORI ===")
+                print("\n=== PI1 MENI ===")
+                print("--- Aktuatori ---")
                 print("[1] Uključi svetlo")
                 print("[2] Isključi svetlo")
                 print("[3] Toggle svetlo")
                 print("[4] Kratki beep")
                 print("[5] Dugi beep")
+                print("--- Test senzora / demo ---")
+                print("[6] TEST DPIR1 -> door_motion (tačka 1)")
+                print("[7] TEST DUS1 ulazak (tačka 2 ENTRY)")
+                print("[8] TEST DUS1 izlazak (tačka 2 EXIT)")
+                print("[9] TEST DS1 otvoreno 6s (tačka 3)")
+                print("[10] TEST DMS PIN 1234 (tačka 4A)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
@@ -138,6 +146,16 @@ class PI1_Controller:
                     threading.Thread(target=self.buzzer.beep, args=(0.2, 3), daemon=True).start()
                 elif choice == "5":
                     threading.Thread(target=self.buzzer.continuous, args=(2.0,), daemon=True).start()
+                elif choice == "6":
+                    self.test_dpir1_pulse()
+                elif choice == "7":
+                    self.test_dus1_entry_sequence()
+                elif choice == "8":
+                    self.test_dus1_exit_sequence()
+                elif choice == "9":
+                    self.test_ds1_open_alarm()
+                elif choice == "10":
+                    self.test_dms_pin()
                 elif choice == "0":
                     print("Izlaz...")
                     break
@@ -158,6 +176,44 @@ class PI1_Controller:
         self.start_sensors()
         self.actuator_menu()
         self.cleanup()
+
+        # ===== TEST / DEMO FUNKCIJE =====
+
+    def test_dpir1_pulse(self):
+        """Tačka 1: DPIR1 -> door_motion=1.0 jednokratno."""
+        print("[TEST] DPIR1 door_motion = 1.0")
+        self._send_measurement("door_motion", 1.0)
+
+    def test_dus1_entry_sequence(self):
+        """Tačka 2: DUS1 ulazak, opadajuće distance."""
+        seq = [200, 150, 100, 80, 60, 40]
+        print("[TEST] DUS1 ENTRY distances:", seq)
+        for v in seq:
+            self._send_measurement("door_distance", float(v))
+            time.sleep(0.3)
+
+    def test_dus1_exit_sequence(self):
+        """Tačka 2: DUS1 izlazak, rastuće distance."""
+        seq = [80, 120, 160, 180, 230]
+        print("[TEST] DUS1 EXIT distances:", seq)
+        for v in seq:
+            self._send_measurement("door_distance", float(v))
+            time.sleep(0.3)
+
+    def test_ds1_open_alarm(self):
+        """Tačka 3: DS1 drži 1.0 > 5s pa 0.0."""
+        print("[TEST] DS1 door_button = 1.0 (držanje >5s)")
+        self._send_measurement("door_button", 1.0)
+        time.sleep(8.0)
+        print("[TEST] DS1 door_button = 0.0 (zatvaranje)")
+        self._send_measurement("door_button", 0.0)
+
+    def test_dms_pin(self):
+        """Tačka 4A: DMS PIN 1234."""
+        pin = "1234"
+        print(f"[TEST] DMS door_membrane = {pin}")
+        self._send_measurement("door_membrane", pin)
+
 
 
 if __name__ == "__main__":

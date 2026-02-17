@@ -35,8 +35,8 @@ class PI3_Controller:
         green_pin = self.config.get_pin("LED_GREEN")
         blue_pin = self.config.get_pin("LED_BLUE")
         ir_pin = self.config.get_pin("IR_PIN")
-        dht1_pin = self.config.get_pin("DTH1_PIN")
-        dht2_pin = self.config.get_pin("DTH2_PIN")
+        dht1_pin = self.config.get_pin("DHT1_PIN")
+        dht2_pin = self.config.get_pin("DHT1_PIN")
         dpir3_pin = self.config.get_pin("DPIR3_PIN")
 
         self.dht1 = DHTSensor(dht1_pin, self.config.is_simulated("DHT1"))
@@ -45,7 +45,7 @@ class PI3_Controller:
         self.ir_sensor = IRReceiver(ir_pin, self.config.is_simulated("IR"))
 
         self.rgb_led = RGBLed(red_pin, green_pin, blue_pin, simulate=self.config.is_simulated("BRGB"))
-        self.lcd = LCD16x2(i2c_address=self.config.get_value("LCD_CONFIG", "I2C_ADDRESS", 0x27, int), simulate=self.config.is_simulated("LCD"))
+        self.lcd = LCD16x2(address=self.config.get_value("LCD_CONFIG", "I2C_ADDRESS", 0x27, int), simulate=self.config.is_simulated("LCD"))
 
         self.device_info = self.config.get_device_info()
         mqtt_cfg = self.config.get_mqtt_config()
@@ -85,67 +85,88 @@ class PI3_Controller:
         self._send_measurement("bedroom_ir", value)
 
     def start_sensors(self):
-        cfg = self.config
+        return
+        # cfg = self.config
 
-        self.threads.append(threading.Thread(
-            target=run_dht_loop,
-            args=(self.dht1, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht1_callback, self.stop_event),
-            daemon=True
-        ))
+        # self.threads.append(threading.Thread(
+        #     target=run_dht_loop,
+        #     args=(self.dht1, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht1_callback, self.stop_event),
+        #     daemon=True
+        # ))
 
-        self.threads.append(threading.Thread(
-            target=run_dht_loop,
-            args=(self.dht2, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht2_callback, self.stop_event),
-            daemon=True
-        ))
+        # self.threads.append(threading.Thread(
+        #     target=run_dht_loop,
+        #     args=(self.dht2, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht2_callback, self.stop_event),
+        #     daemon=True
+        # ))
 
-        self.threads.append(threading.Thread(
-            target=run_motion_loop,
-            args=(self.dpir3, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
-            daemon=True
-        ))
+        # self.threads.append(threading.Thread(
+        #     target=run_motion_loop,
+        #     args=(self.dpir3, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
+        #     daemon=True
+        # ))
 
-        self.threads.append(threading.Thread(
-            target=run_ir_loop,
-            args=(self.ir_sensor, cfg.get_value("SENSOR_CONFIG", "IR_DELAY", 0.2, float), self._ir_callback, self.stop_event),
-            daemon=True
-        ))
+        # self.threads.append(threading.Thread(
+        #     target=run_ir_loop,
+        #     args=(self.ir_sensor, cfg.get_value("SENSOR_CONFIG", "IR_DELAY", 0.2, float), self._ir_callback, self.stop_event),
+        #     daemon=True
+        # ))
 
-        for t in self.threads:
-            t.start()
+        # for t in self.threads:
+        #     t.start()
 
     def actuator_menu(self):
         try:
             while True:
-                print("\n=== AKTUATORI ===")
+                print("\n=== PI3 MENI ===")
+                print("--- Aktuatori ---")
                 print("[1] RGB LED WHITE")
                 print("[2] RGB LED RED")
                 print("[3] RGB LED GREEN")
                 print("[4] RGB LED BLUE")
                 print("[5] Turn off RGB")
-                print("[6] Update LCD message")
+                print("[6] Update LCD message (ručno)")
+                print("--- Test senzora / demo ---")
+                print("[7] TEST bedroom DHT (jedan set)")
+                print("[8] TEST master DHT (jedan set)")
+                print("[9] TEST kitchen DHT (jedan set)")
+                print("[10] TEST IR dugme '1'")
+                print("[11] TEST IR dugme '2'")
+                print("[12] TEST IR dugme '0' (OFF)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
                 if choice == "1":
-                    self.rgb_led.white()
+                    self.rgb_led.COLORS["white"]
                     self._send_measurement("rgb_led", "WHITE")
                 elif choice == "2":
-                    self.rgb_led.red()
+                    self.rgb_led.COLORS["red"]
                     self._send_measurement("rgb_led", "RED")
                 elif choice == "3":
-                    self.rgb_led.green()
+                    self.rgb_led.COLORS["green"]
                     self._send_measurement("rgb_led", "GREEN")
                 elif choice == "4":
-                    self.rgb_led.blue()
+                    self.rgb_led.COLORS["blue"]
                     self._send_measurement("rgb_led", "BLUE")
                 elif choice == "5":
                     self.rgb_led.turn_off()
                     self._send_measurement("rgb_led", "OFF")
                 elif choice == "6":
                     msg = input("Unesi poruku za LCD: ")
-                    self.lcd.display_text(msg)
+                    self.lcd.display(msg)
                     self._send_measurement("lcd_message", msg)
+                elif choice == "7":
+                    self.test_dht_bedroom_once()
+                elif choice == "8":
+                    self.test_dht_master_once()
+                elif choice == "9":
+                    self.test_dht_kitchen_once()
+                elif choice == "10":
+                    self.test_ir_button("1")
+                elif choice == "11":
+                    self.test_ir_button("2")
+                elif choice == "12":
+                    self.test_ir_button("0")
                 elif choice == "0":
                     print("Izlaz...")
                     break
@@ -168,6 +189,28 @@ class PI3_Controller:
         self.start_sensors()
         self.actuator_menu()
         self.cleanup()
+
+    # ===== TEST / DEMO FUNKCIJE =====
+
+    def test_dht_bedroom_once(self):
+        print("[TEST] bedroom DHT -> 45% / 22C")
+        self._send_measurement("bedroom_dht_humidity", 45.0)
+        self._send_measurement("bedroom_dht_temperature", 22.0)
+
+    def test_dht_master_once(self):
+        print("[TEST] master DHT -> 50% / 21C")
+        self._send_measurement("master_dht_humidity", 50.0)
+        self._send_measurement("master_dht_temperature", 21.0)
+
+    def test_dht_kitchen_once(self):
+        print("[TEST] kitchen DHT -> 55% / 23C")
+        self._send_measurement("kitchen_dht_humidity", 55.0)
+        self._send_measurement("kitchen_dht_temperature", 23.0)
+
+    def test_ir_button(self, value: str):
+        print(f"[TEST] bedroom_ir = {value}")
+        self._send_measurement("bedroom_ir", value)
+
 
 
 if __name__ == "__main__":
