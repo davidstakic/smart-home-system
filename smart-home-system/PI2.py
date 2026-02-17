@@ -1,6 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 import threading
+import paho.mqtt.client as mqtt
+import json
 
 from components.sensors.button import Button, run_button_loop
 from components.sensors.motion_sensor import MotionSensor, run_motion_loop
@@ -80,6 +82,13 @@ class PI2_Controller:
             mqtt_cfg["batch_size"],
             mqtt_cfg["send_interval"]
         )
+
+        self.cmd_client = mqtt.Client(client_id=f"{self.device_info['pi_id']}_cmd")
+        self.cmd_client.on_message = self._on_cmd_message
+        self.cmd_client.connect(mqtt_cfg["broker"], mqtt_cfg["port"], 60)
+        cmd_topic = f"{mqtt_cfg['base_topic']}/{self.device_info['pi_id']}/cmd/#"
+        self.cmd_client.subscribe(cmd_topic)
+        self.cmd_client.loop_start()
 
         self.stop_event = threading.Event()
         self.threads = []
@@ -277,6 +286,22 @@ class PI2_Controller:
         time.sleep(0.2)
         self._send_measurement("kitchen_button", 0.0)
 
+    def _on_cmd_message(self, client, userdata, msg):
+        try:
+            topic_parts = msg.topic.split("/")
+            device = topic_parts[3]
+
+            payload = json.loads(msg.payload.decode())
+            print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
+
+            # if device == "4sd":
+            #     value = payload.get("value")
+            #     if value is not None:
+            #         value_str = str(value)
+            #         value_str = value_str[:4]
+            #         self.display.update(value_str)
+        except Exception as e:
+            print(f"[CMD ERROR] {e}")
 
 
 if __name__ == "__main__":

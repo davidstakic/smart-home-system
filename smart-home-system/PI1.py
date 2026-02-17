@@ -2,6 +2,8 @@ from datetime import datetime
 from pathlib import Path
 import threading
 import time
+import paho.mqtt.client as mqtt
+import json
 
 from components.sensors.button import Button, run_button_loop
 from components.sensors.motion_sensor import MotionSensor, run_motion_loop
@@ -71,6 +73,13 @@ class PI1_Controller:
             mqtt_cfg["batch_size"],
             mqtt_cfg["send_interval"]
         )
+        
+        self.cmd_client = mqtt.Client(client_id=f"{self.device_info['pi_id']}_cmd")
+        self.cmd_client.on_message = self._on_cmd_message
+        self.cmd_client.connect(mqtt_cfg["broker"], mqtt_cfg["port"], 60)
+        cmd_topic = f"{mqtt_cfg['base_topic']}/{self.device_info['pi_id']}/cmd/#"
+        self.cmd_client.subscribe(cmd_topic)
+        self.cmd_client.loop_start()
 
         self.stop_event = threading.Event()
         self.threads = []
@@ -214,6 +223,28 @@ class PI1_Controller:
         print(f"[TEST] DMS door_membrane = {pin}")
         self._send_measurement("door_membrane", pin)
 
+    def _on_cmd_message(self, client, userdata, msg):
+        try:
+            topic_parts = msg.topic.split("/")
+            device = topic_parts[3]
+
+            payload = json.loads(msg.payload.decode())
+            print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
+
+            # action = payload.get("action")
+
+            # if device == "door_light":
+            #     if action == "on":
+            #         self.door_light.turn_on()
+            #     elif action == "off":
+            #         self.door_light.turn_off()
+            # elif device == "door_buzzer":
+            #     if action == "on":
+            #         self.buzzer.continuous(5.0)
+            #     elif action == "off":
+            #         self.buzzer.stop()
+        except Exception as e:
+            print(f"[CMD ERROR] {e}")
 
 
 if __name__ == "__main__":

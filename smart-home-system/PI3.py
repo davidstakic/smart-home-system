@@ -2,6 +2,8 @@ from datetime import datetime
 from pathlib import Path
 import threading
 import time
+import paho.mqtt.client as mqtt
+import json
 
 from components.sensors.dht import DHTSensor, run_dht_loop
 from components.sensors.motion_sensor import MotionSensor, run_motion_loop
@@ -56,6 +58,13 @@ class PI3_Controller:
             mqtt_cfg["batch_size"],
             mqtt_cfg["send_interval"]
         )
+
+        self.cmd_client = mqtt.Client(client_id=f"{self.device_info['pi_id']}_cmd")
+        self.cmd_client.on_message = self._on_cmd_message
+        self.cmd_client.connect(mqtt_cfg["broker"], mqtt_cfg["port"], 60)
+        cmd_topic = f"{mqtt_cfg['base_topic']}/{self.device_info['pi_id']}/cmd/#"
+        self.cmd_client.subscribe(cmd_topic)
+        self.cmd_client.loop_start()
 
         self.stop_event = threading.Event()
         self.threads = []
@@ -211,6 +220,31 @@ class PI3_Controller:
         print(f"[TEST] bedroom_ir = {value}")
         self._send_measurement("bedroom_ir", value)
 
+    def _on_cmd_message(self, client, userdata, msg):
+        try:
+            topic_parts = msg.topic.split("/")
+            device = topic_parts[3]
+
+            payload = json.loads(msg.payload.decode())
+            print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
+
+            # if device == "rgb_led":
+            #     color = payload.get("color")
+            #     if color:
+            #         if color in ["*", "#"]:
+            #             self.rgb_led.turn_off()
+            #         else:
+            #             self.rgb_led.set_color(color)
+            # elif device == "lcd":
+            #     action = payload.get("action")
+            #     if action == "display":
+            #         line1 = payload.get("line1", "")
+            #         line2 = payload.get("line2", "")
+
+            #         self.lcd.display(line1, line=1)
+            #         self.lcd.display(line2, line=2)
+        except Exception as e:
+            print(f"[CMD ERROR] {e}")
 
 
 if __name__ == "__main__":
