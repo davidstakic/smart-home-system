@@ -300,6 +300,7 @@ class PI2_Controller:
             #         value_str = str(value)
             #         value_str = value_str[:4]
             #         self.display.update(value_str)
+            #         self._send_measurement("display_4sd", value_str)
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

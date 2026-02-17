@@ -231,18 +231,21 @@ class PI1_Controller:
             payload = json.loads(msg.payload.decode())
             print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
 
-            # action = payload.get("action")
+            action = payload.get("action")
 
             # if device == "door_light":
             #     if action == "on":
             #         self.door_light.turn_on()
+            #         self._send_measurement("door_light", 1.0)
             #     elif action == "off":
             #         self.door_light.turn_off()
+            #         self._send_measurement("door_light", 0.0)
             # elif device == "door_buzzer":
             #     if action == "on":
             #         self.buzzer.continuous(5.0)
-            #     elif action == "off":
-            #         self.buzzer.stop()
+            #     # dodati stop metodu
+            #     # elif action == "off":
+            #     #     self.buzzer.stop()
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

@@ -235,6 +235,7 @@ class PI3_Controller:
             #             self.rgb_led.turn_off()
             #         else:
             #             self.rgb_led.set_color(color)
+            #         self._send_measurement("rgb_led", color)
             # elif device == "lcd":
             #     action = payload.get("action")
             #     if action == "display":
@@ -243,6 +244,7 @@ class PI3_Controller:
 
             #         self.lcd.display(line1, line=1)
             #         self.lcd.display(line2, line=2)
+            #         self._send_measurement("lcd_message", line1 + " " + line2)
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 
