@@ -35,15 +35,15 @@ LCD_SWITCH_DELAY = 5   # seconds between DHT rotations on LCD
 COLORS = ["RED", "GREEN", "BLUE", "YELLOW", "PURPLE", "LIGHTBLUE", "WHITE"]
 
 IR_TO_COLOR = {
-    "1": "red",
-    "2": "green",
-    "3": "blue",
-    "4": "yellow",
-    "5": "purple",
-    "6": "lightblue",
-    "0": "white",
-    "*": "off",
-    "#": "off",
+    "1": "RED",
+    "2": "GREEN",
+    "3": "BLUE",
+    "4": "YELLOW",
+    "5": "PURPLE",
+    "6": "LIGHTBLUE",
+    "0": "WHITE",
+    "*": "OFF",
+    "#": "OFF",
 }
 
 stopwatch_state = {
@@ -165,6 +165,8 @@ def start_lcd_cycle(pi_id):
         rooms = list(dht_data.get(pi_id, {}).keys())
         if not rooms:
             return
+        
+        print("LCD")
 
         room = rooms[index % len(rooms)]
         index += 1
@@ -187,10 +189,9 @@ def start_lcd_cycle(pi_id):
     cycle()
 
 
-def handle_ir_mqtt(pi_id, button_value):
-    color = IR_TO_COLOR.get(button_value)
+def handle_ir_mqtt(pi_id, color):
     if color:
-        print(f"[IR] Dugme {button_value} -> boja {color}")
+        print(f"[IR] Boja {color}")
         command_client.publish(
             f"smart_home/{pi_id}/cmd/rgb_led", json.dumps({"color": color})
         )
@@ -343,7 +344,7 @@ def on_cmd_message(client, userdata, msg):
         if category == "sensor" and payload.get("sensor_type") == "bedroom_ir":
             print("DOOR IR " + str(pi_id))
             button_value = payload.get("value")
-            handle_ir_mqtt(pi_id, button_value)
+            handle_ir_mqtt(pi_id, IR_TO_COLOR.get(button_value))
 
         # Commands (door_light, door_buzzer) – log u Influx
         if category == "cmd":

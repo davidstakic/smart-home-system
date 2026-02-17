@@ -138,24 +138,23 @@ class PI3_Controller:
                 print("--- Test senzora / demo ---")
                 print("[7] TEST bedroom DHT (jedan set)")
                 print("[8] TEST master DHT (jedan set)")
-                print("[9] TEST kitchen DHT (jedan set)")
-                print("[10] TEST IR dugme '1'")
-                print("[11] TEST IR dugme '2'")
-                print("[12] TEST IR dugme '0' (OFF)")
+                print("[9] TEST IR dugme '1'")
+                print("[10] TEST IR dugme '2'")
+                print("[11] TEST IR dugme '0' (OFF)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
                 if choice == "1":
-                    self.rgb_led.COLORS["white"]
+                    self.rgb_led.COLORS["WHITE"]
                     self._send_measurement("rgb_led", "WHITE")
                 elif choice == "2":
-                    self.rgb_led.COLORS["red"]
+                    self.rgb_led.COLORS["RED"]
                     self._send_measurement("rgb_led", "RED")
                 elif choice == "3":
-                    self.rgb_led.COLORS["green"]
+                    self.rgb_led.COLORS["GREEN"]
                     self._send_measurement("rgb_led", "GREEN")
                 elif choice == "4":
-                    self.rgb_led.COLORS["blue"]
+                    self.rgb_led.COLORS["BLUE"]
                     self._send_measurement("rgb_led", "BLUE")
                 elif choice == "5":
                     self.rgb_led.turn_off()
@@ -169,12 +168,10 @@ class PI3_Controller:
                 elif choice == "8":
                     self.test_dht_master_once()
                 elif choice == "9":
-                    self.test_dht_kitchen_once()
-                elif choice == "10":
                     self.test_ir_button("1")
-                elif choice == "11":
+                elif choice == "10":
                     self.test_ir_button("2")
-                elif choice == "12":
+                elif choice == "11":
                     self.test_ir_button("0")
                 elif choice == "0":
                     print("Izlaz...")
@@ -210,11 +207,6 @@ class PI3_Controller:
         print("[TEST] master DHT -> 50% / 21C")
         self._send_measurement("master_dht_humidity", 50.0)
         self._send_measurement("master_dht_temperature", 21.0)
-
-    def test_dht_kitchen_once(self):
-        print("[TEST] kitchen DHT -> 55% / 23C")
-        self._send_measurement("kitchen_dht_humidity", 55.0)
-        self._send_measurement("kitchen_dht_temperature", 23.0)
 
     def test_ir_button(self, value: str):
         print(f"[TEST] bedroom_ir = {value}")

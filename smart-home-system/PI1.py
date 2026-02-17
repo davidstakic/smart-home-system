@@ -213,7 +213,7 @@ class PI1_Controller:
         """Tačka 3: DS1 drži 1.0 > 5s pa 0.0."""
         print("[TEST] DS1 door_button = 1.0 (držanje >5s)")
         self._send_measurement("door_button", 1.0)
-        time.sleep(8.0)
+        time.sleep(10.0)
         print("[TEST] DS1 door_button = 0.0 (zatvaranje)")
         self._send_measurement("door_button", 0.0)
 

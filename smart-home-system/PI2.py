@@ -182,6 +182,7 @@ class PI2_Controller:
                 print("[7] TEST GSG movement (ALARM)")
                 print("[8] TEST GSG normal")
                 print("[9] TEST Kitchen BTN (dodavanje N)")
+                print("[10] TEST kitchen DHT (jedan set)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
@@ -206,6 +207,8 @@ class PI2_Controller:
                     self.test_gsg_normal()
                 elif choice == "9":
                     self.test_kitchen_btn_press()
+                elif choice == "10":
+                    self.test_dht_kitchen_once()
                 elif choice == "0":
                     print("Izlaz...")
                     break
@@ -233,14 +236,14 @@ class PI2_Controller:
         self._send_measurement("door_motion", 1.0)
 
     def test_dus2_entry_sequence(self):
-        seq = [200, 150, 100, 80]
+        seq = [200, 170, 150, 100, 80]
         print("[TEST] DUS2 ENTRY distances:", seq)
         for v in seq:
             self._send_measurement("door_distance", float(v))
             time.sleep(0.3)
 
     def test_dus2_exit_sequence(self):
-        seq = [80, 120, 180, 230]
+        seq = [80, 120, 180, 200, 230]
         print("[TEST] DUS2 EXIT distances:", seq)
         for v in seq:
             self._send_measurement("door_distance", float(v))
@@ -249,7 +252,7 @@ class PI2_Controller:
     def test_ds2_open_alarm(self):
         print("[TEST] DS2 door_button = 1.0 (držanje >5s)")
         self._send_measurement("door_button", 1.0)
-        time.sleep(6.0)
+        time.sleep(30.0)
         print("[TEST] DS2 door_button = 0.0 (zatvaranje)")
         self._send_measurement("door_button", 0.0)
 
@@ -285,6 +288,11 @@ class PI2_Controller:
         self._send_measurement("kitchen_button", 1.0)
         time.sleep(0.2)
         self._send_measurement("kitchen_button", 0.0)
+
+    def test_dht_kitchen_once(self):
+        print("[TEST] kitchen DHT -> 55% / 23C")
+        self._send_measurement("kitchen_dht_humidity", 55.0)
+        self._send_measurement("kitchen_dht_temperature", 23.0)
 
     def _on_cmd_message(self, client, userdata, msg):
         try:

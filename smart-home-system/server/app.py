@@ -18,6 +18,7 @@ from backend import (
     disarm_system,
     timer_config_pi2,
     COLORS,
+    handle_ir_mqtt
 )
 
 app = Flask(__name__)
@@ -100,7 +101,7 @@ def control_buzzer():
 def control_rgb_led():
     # stari endpoint, ostavljen radi kompatibilnosti (koristi PI3)
     data = request.json or {}
-    color = data.get("color", "off")
+    color = data.get("color", "OFF")
     command_client.publish(
         "smart_home/PI3/cmd/rgb_led", json.dumps({"color": color})
     )
@@ -117,10 +118,7 @@ def pi3_set_rgb():
             "message": f"Invalid color '{color}'. Allowed: {sorted(COLORS)}"
         }), 400
 
-    command_client.publish(
-        "smart_home/PI3/cmd/rgb_led",
-        json.dumps({"color": color})
-    )
+    handle_ir_mqtt('PI3', color)
 
     # po želji uključi log u Influx
     # write_influx("PI3", "rgb_led", color, device_name="BedroomRGB")
@@ -185,11 +183,11 @@ def api_alarm_deactivate():
 
     if security_state["mode"] == "ALARM":
         print("[SECURITY] Alarm deactivated via web")
-        # security_state["mode"] = "ARMED"
-        # write_influx("SERVER", "alarm_state", 0.0, device_name="SecuritySystem")
-        # send_mqtt_command("PI1", "door_buzzer", "off")
-        disarm_system()
-        write_influx("SERVER", "alarm_event", "disarmed_web", device_name="SecuritySystem")
+        security_state["mode"] = "ARMED"
+        write_influx("SERVER", "alarm_state", 0.0, device_name="SecuritySystem")
+        send_mqtt_command("PI1", "door_buzzer", "off")
+        # disarm_system()
+        # write_influx("SERVER", "alarm_event", "disarmed_web", device_name="SecuritySystem")
 
     return jsonify({"success": True, "message": "System disarmed"})
 
