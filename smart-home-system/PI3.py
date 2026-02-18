@@ -62,36 +62,36 @@ class PI3_Controller:
         self.cmd_client = mqtt.Client(client_id=f"{self.device_info['pi_id']}_cmd")
         self.cmd_client.on_message = self._on_cmd_message
         self.cmd_client.connect(mqtt_cfg["broker"], mqtt_cfg["port"], 60)
-        cmd_topic = f"{mqtt_cfg['base_topic']}/{self.device_info['pi_id']}/cmd/#"
+        cmd_topic = f"smart_home/{self.device_info['pi_id']}/cmd/#"
         self.cmd_client.subscribe(cmd_topic)
         self.cmd_client.loop_start()
 
         self.stop_event = threading.Event()
         self.threads = []
 
-    def _send_measurement(self, sensor_type, value):
+    def _send_measurement(self, sensor_type, value, sensor_config_code):
         payload = {
             "pi_id": self.device_info["pi_id"],
             "device_name": self.device_info["device_name"],
             "sensor_type": sensor_type,
-            "simulated": self.config.is_simulated(sensor_type),
+            "simulated": self.config.is_simulated(sensor_config_code),
             "value": value
         }
         self.mqtt_sender.enqueue(payload)
 
     def _dht1_callback(self, humidity, temperature, code):
-        self._send_measurement("bedroom_dht_humidity", humidity)
-        self._send_measurement("bedroom_dht_temperature", temperature)
+        self._send_measurement("bedroom_dht_humidity", humidity, "DHT1")
+        self._send_measurement("bedroom_dht_temperature", temperature, "DHT1")
 
     def _dht2_callback(self, humidity, temperature, code):
-        self._send_measurement("master_dht_humidity", humidity)
-        self._send_measurement("master_dht_temperature", temperature)
+        self._send_measurement("master_dht_humidity", humidity, "DHT2")
+        self._send_measurement("master_dht_temperature", temperature, "DHT2")
 
     def _motion_callback(self, value):
-        self._send_measurement("door_motion", value)
+        self._send_measurement("door_motion", value, "DPIR3")
 
     def _ir_callback(self, value):
-        self._send_measurement("bedroom_ir", value)
+        self._send_measurement("bedroom_ir", value, "IR")
 
     def start_sensors(self):
         return
@@ -146,23 +146,23 @@ class PI3_Controller:
 
                 if choice == "1":
                     self.rgb_led.COLORS["WHITE"]
-                    self._send_measurement("rgb_led", "WHITE")
+                    self._send_measurement("rgb_led", "WHITE", "BRGB")
                 elif choice == "2":
                     self.rgb_led.COLORS["RED"]
-                    self._send_measurement("rgb_led", "RED")
+                    self._send_measurement("rgb_led", "RED", "BRGB")
                 elif choice == "3":
                     self.rgb_led.COLORS["GREEN"]
-                    self._send_measurement("rgb_led", "GREEN")
+                    self._send_measurement("rgb_led", "GREEN", "BRGB")
                 elif choice == "4":
                     self.rgb_led.COLORS["BLUE"]
-                    self._send_measurement("rgb_led", "BLUE")
+                    self._send_measurement("rgb_led", "BLUE", "BRGB")
                 elif choice == "5":
                     self.rgb_led.turn_off()
-                    self._send_measurement("rgb_led", "OFF")
+                    self._send_measurement("rgb_led", "OFF", "BRGB")
                 elif choice == "6":
                     msg = input("Unesi poruku za LCD: ")
                     self.lcd.display(msg)
-                    self._send_measurement("lcd_message", msg)
+                    self._send_measurement("lcd_message", msg, "LCD")
                 elif choice == "7":
                     self.test_dht_bedroom_once()
                 elif choice == "8":
@@ -172,7 +172,7 @@ class PI3_Controller:
                 elif choice == "10":
                     self.test_ir_button("2")
                 elif choice == "11":
-                    self.test_ir_button("0")
+                    self.test_ir_button("*")
                 elif choice == "0":
                     print("Izlaz...")
                     break
@@ -200,17 +200,17 @@ class PI3_Controller:
 
     def test_dht_bedroom_once(self):
         print("[TEST] bedroom DHT -> 45% / 22C")
-        self._send_measurement("bedroom_dht_humidity", 45.0)
-        self._send_measurement("bedroom_dht_temperature", 22.0)
+        self._send_measurement("bedroom_dht_humidity", 45.0, "DHT1")
+        self._send_measurement("bedroom_dht_temperature", 22.0, "DHT1")
 
     def test_dht_master_once(self):
         print("[TEST] master DHT -> 50% / 21C")
-        self._send_measurement("master_dht_humidity", 50.0)
-        self._send_measurement("master_dht_temperature", 21.0)
+        self._send_measurement("master_dht_humidity", 50.0, "DHT2")
+        self._send_measurement("master_dht_temperature", 21.0, "DHT2")
 
     def test_ir_button(self, value: str):
         print(f"[TEST] bedroom_ir = {value}")
-        self._send_measurement("bedroom_ir", value)
+        self._send_measurement("bedroom_ir", value, "IR")
 
     def _on_cmd_message(self, client, userdata, msg):
         try:
@@ -227,7 +227,7 @@ class PI3_Controller:
             #             self.rgb_led.turn_off()
             #         else:
             #             self.rgb_led.set_color(color)
-            #         self._send_measurement("rgb_led", color)
+            #         self._send_measurement("rgb_led", color, "BRGB")
             # elif device == "lcd":
             #     action = payload.get("action")
             #     if action == "display":
@@ -236,7 +236,7 @@ class PI3_Controller:
 
             #         self.lcd.display(line1, line=1)
             #         self.lcd.display(line2, line=2)
-            #         self._send_measurement("lcd_message", line1 + " " + line2)
+            #         self._send_measurement("lcd_message", line1 + " " + line2, "LCD")
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

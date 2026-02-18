@@ -51,6 +51,10 @@ def pi3_page():
 def alarm_page():
     return render_template("alarm.html")
 
+@app.get("/camera")
+def camera_page():
+    return render_template("camera.html")
+
 # ---------- API: Alarm & global ----------
 
 @app.get("/api/alarm/state")
