@@ -5,9 +5,9 @@ import paho.mqtt.client as mqtt
 import json
 
 from components.sensors.button import Button, run_button_loop
-from components.sensors.motion_sensor import MotionSensor, run_motion_loop
-from components.sensors.ultrasonic_sensor import UltrasonicSensor, run_ultrasonic_loop
-from components.sensors.dht import DHTSensor, run_dht_loop
+from components.sensors.pir import PIR, run_motion_loop
+from components.sensors.uds import UDS, run_ultrasonic_loop
+from components.sensors.dht import DHT, run_dht_loop
 from components.sensors.gyroscope import Gyroscope, run_gyro_loop
 from components.actuators.display_4sd import Display4SD
 from config.config import Config
@@ -59,10 +59,10 @@ class PI2_Controller:
         ]
 
         self.door_sensor = Button(ds2_pin, self.config.is_simulated("DS2"))
-        self.motion_sensor = MotionSensor(dpir2_pin, self.config.is_simulated("DPIR2"))
-        self.ultrasonic = UltrasonicSensor(dus2_trigger, dus2_echo, self.config.is_simulated("DUS2"))
+        self.motion_sensor = PIR(dpir2_pin, self.config.is_simulated("DPIR2"))
+        self.ultrasonic = UDS(dus2_trigger, dus2_echo, self.config.is_simulated("DUS2"))
         self.button = Button(btn_pin, self.config.is_simulated("BTN"))
-        self.dht_sensor = DHTSensor(dht3_pin, self.config.is_simulated("DHT3"))
+        self.dht_sensor = DHT(dht3_pin, self.config.is_simulated("DHT3"))
         self.gyroscope = Gyroscope(self.config.is_simulated("GSG"))
 
         self.display = Display4SD(
@@ -302,13 +302,13 @@ class PI2_Controller:
             payload = json.loads(msg.payload.decode())
             print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
 
-            # if device == "4sd":
-            #     value = payload.get("value")
-            #     if value is not None:
-            #         value_str = str(value)
-            #         value_str = value_str[:4]
-            #         self.display.update(value_str)
-            #         self._send_measurement("display_4sd", value_str, "4SD")
+            if device == "4sd":
+                value = payload.get("value")
+                if value is not None:
+                    value_str = str(value)
+                    value_str = value_str[:4]
+                    self.display.update(value_str)
+                    self._send_measurement("display_4sd", value_str, "4SD")
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

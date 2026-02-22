@@ -8,7 +8,7 @@ except ImportError:
     from mock_rpi import GPIO
     RUNNING_ON_PI = False
 
-class MotionSensor:
+class PIR:
     NO_MOTION = 0
     MOTION = 1
     INVALID_VALUE = -999

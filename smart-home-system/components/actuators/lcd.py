@@ -1,84 +1,75 @@
 import time
 
 try:
-    import smbus # type: ignore
+    from PCF8574 import PCF8574_GPIO
+    from Adafruit_LCD1602 import Adafruit_CharLCD
     RUNNING_ON_PI = True
 except ImportError:
     RUNNING_ON_PI = False
 
 
-class LCD16x2:
-
-    LCD_WIDTH = 16
-    LCD_CHR = 1
-    LCD_CMD = 0
-
-    LCD_LINE_1 = 0x80
-    LCD_LINE_2 = 0xC0
-
-    ENABLE = 0b00000100
-
-    def __init__(self, address=0x27, bus=1, simulate=False):
-        self.address = address
+class LCD:
+    def __init__(
+        self,
+        address=0x27,
+        pin_rs=0,
+        pin_e=2,
+        pins_db=(4, 5, 6, 7),
+        backlight_pin=3,
+        simulate=False
+    ):
         self.simulate = simulate
+        self.address = address
+        self.backlight_pin = backlight_pin
+        self.lcd = None
 
-        if not simulate and RUNNING_ON_PI:
-            self.bus = smbus.SMBus(bus)
-            self._init_lcd()
-        else:
-            self.bus = None
-
-    def _write_byte(self, data):
         if not self.simulate:
-            self.bus.write_byte(self.address, data)
+            try:
+                mcp = PCF8574_GPIO(address)
+            except:
+                mcp = PCF8574_GPIO(0x3F)
 
-    def _toggle_enable(self, bits):
-        time.sleep(0.0005)
-        self._write_byte(bits | self.ENABLE)
-        time.sleep(0.0005)
-        self._write_byte(bits & ~self.ENABLE)
-        time.sleep(0.0005)
+            self.mcp = mcp
 
-    def _send(self, bits, mode):
-        high_bits = mode | (bits & 0xF0)
-        low_bits = mode | ((bits << 4) & 0xF0)
+            self.lcd = Adafruit_CharLCD(
+                pin_rs=pin_rs,
+                pin_e=pin_e,
+                pins_db=list(pins_db),
+                GPIO=mcp
+            )
 
-        self._write_byte(high_bits)
-        self._toggle_enable(high_bits)
+            self.lcd.begin(16, 2)
+            self.lcd.clear()
 
-        self._write_byte(low_bits)
-        self._toggle_enable(low_bits)
+    def display(self, line1="", line2=""):
+        line1 = line1.ljust(16)[:16]
+        line2 = line2.ljust(16)[:16]
 
-    def _init_lcd(self):
-        time.sleep(0.02)
-        self._send(0x33, self.LCD_CMD)
-        self._send(0x32, self.LCD_CMD)
-        self._send(0x06, self.LCD_CMD)
-        self._send(0x0C, self.LCD_CMD)
-        self._send(0x28, self.LCD_CMD)
-        self._send(0x01, self.LCD_CMD)
-        time.sleep(0.005)
+        if self.simulate:
+            print("------ LCD ------")
+            print(line1)
+            print(line2)
+            print("-----------------")
+        else:
+            self.lcd.clear()
+            self.lcd.setCursor(0, 0)
+            self.lcd.message(line1)
+            self.lcd.setCursor(0, 1)
+            self.lcd.message(line2)
 
     def clear(self):
         if self.simulate:
-            print("[SIMULATION] LCD CLEAR")
-            return
-        self._send(0x01, self.LCD_CMD)
+            print("[LCD CLEAR]")
+        else:
+            self.lcd.clear()
 
-    def display(self, text, line=1):
-        text = text.ljust(self.LCD_WIDTH, " ")
-
+    def backlight(self, state=True):
         if self.simulate:
-            print(f"[SIMULATION] LCD Line {line}: {text}")
-            return
-
-        if line == 1:
-            self._send(self.LCD_LINE_1, self.LCD_CMD)
-        elif line == 2:
-            self._send(self.LCD_LINE_2, self.LCD_CMD)
-
-        for char in text:
-            self._send(ord(char), self.LCD_CHR)
+            print(f"[LCD BACKLIGHT {'ON' if state else 'OFF'}]")
+        else:
+            self.mcp.output(self.backlight_pin, 1 if state else 0)
 
     def cleanup(self):
-        self.clear()
+        if not self.simulate:
+            self.lcd.clear()
+        print("LCD cleanup done")

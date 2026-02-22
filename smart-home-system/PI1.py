@@ -6,10 +6,10 @@ import paho.mqtt.client as mqtt
 import json
 
 from components.sensors.button import Button, run_button_loop
-from components.sensors.motion_sensor import MotionSensor, run_motion_loop
-from components.sensors.ultrasonic_sensor import UltrasonicSensor, run_ultrasonic_loop
+from components.sensors.pir import PIR, run_motion_loop
+from components.sensors.uds import UDS, run_ultrasonic_loop
 from components.sensors.membrane_switch import MembraneSwitch, run_membrane_loop
-from components.actuators.light import Light
+from components.actuators.led import LED
 from components.actuators.buzzer import Buzzer
 from config.config import Config
 from mqtt_batch_sender import MQTTBatchSender
@@ -57,11 +57,11 @@ class PI1_Controller:
         ]
 
         self.door_sensor = Button(ds1_pin, self.config.is_simulated('DS1'))
-        self.motion_sensor = MotionSensor(dpir1_pin, self.config.is_simulated('DPIR1'))
-        self.ultrasonic = UltrasonicSensor(dus1_trigger, dus1_echo, self.config.is_simulated('DUS1'))
+        self.motion_sensor = PIR(dpir1_pin, self.config.is_simulated('DPIR1'))
+        self.ultrasonic = UDS(dus1_trigger, dus1_echo, self.config.is_simulated('DUS1'))
         self.membrane_switch = MembraneSwitch(row_pins, col_pins, simulate=self.config.is_simulated("DMS"))
 
-        self.door_light = Light(dl_pin, self.config.is_simulated('DL'))
+        self.door_light = LED(dl_pin, self.config.is_simulated('DL'))
         self.buzzer = Buzzer(db_pin, self.config.is_simulated('DB'), state_callback=lambda val: self._send_measurement("door_buzzer", val, "DB"))
 
         self.device_info = self.config.get_device_info()
@@ -133,12 +133,13 @@ class PI1_Controller:
                 print("[3] Toggle svetlo")
                 print("[4] Kratki beep")
                 print("[5] Dugi beep")
+                print("[6] Stop buzzer")
                 print("--- Test senzora / demo ---")
-                print("[6] TEST DPIR1 -> door_motion (tačka 1)")
-                print("[7] TEST DUS1 ulazak (tačka 2 ENTRY)")
-                print("[8] TEST DUS1 izlazak (tačka 2 EXIT)")
-                print("[9] TEST DS1 otvoreno 6s (tačka 3)")
-                print("[10] TEST DMS PIN 1234 (tačka 4A)")
+                print("[7] TEST DPIR1 -> door_motion (tačka 1)")
+                print("[8] TEST DUS1 ulazak (tačka 2 ENTRY)")
+                print("[9] TEST DUS1 izlazak (tačka 2 EXIT)")
+                print("[10] TEST DS1 otvoreno 6s (tačka 3)")
+                print("[11] TEST DMS PIN 1234 (tačka 4A)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
@@ -152,18 +153,20 @@ class PI1_Controller:
                     self.door_light.toggle()
                     self._send_measurement("door_light", 1.0 if self.door_light.is_on else 0.0, "DL")
                 elif choice == "4":
-                    threading.Thread(target=self.buzzer.beep, args=(0.2, 3), daemon=True).start()
+                    self.buzzer.beep(pitch=440, duration=0.2)
                 elif choice == "5":
-                    threading.Thread(target=self.buzzer.continuous, args=(2.0,), daemon=True).start()
+                    self.buzzer.continuous(pitch=440)
                 elif choice == "6":
-                    self.test_dpir1_pulse()
+                    self.buzzer.stop()
                 elif choice == "7":
-                    self.test_dus1_entry_sequence()
+                    self.test_dpir1_pulse()
                 elif choice == "8":
-                    self.test_dus1_exit_sequence()
+                    self.test_dus1_entry_sequence()
                 elif choice == "9":
-                    self.test_ds1_open_alarm()
+                    self.test_dus1_exit_sequence()
                 elif choice == "10":
+                    self.test_ds1_open_alarm()
+                elif choice == "11":
                     self.test_dms_pin()
                 elif choice == "0":
                     print("Izlaz...")
@@ -176,6 +179,7 @@ class PI1_Controller:
     def cleanup(self):
         print("\nČišćenje resursa...")
         self.stop_event.set()
+        self.buzzer.stop()
         for t in self.threads:
             t.join(timeout=1.0)
         GPIO.cleanup()
@@ -243,7 +247,6 @@ class PI1_Controller:
             # elif device == "door_buzzer":
             #     if action == "on":
             #         self.buzzer.continuous(5.0)
-            #     # dodati stop metodu
             #     # elif action == "off":
             #     #     self.buzzer.stop()
         except Exception as e:

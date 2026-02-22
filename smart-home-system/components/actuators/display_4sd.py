@@ -16,6 +16,8 @@ class Display4SD:
         self.simulate = simulate
         self.brightness = brightness
         self.update_interval = update_interval
+        self.blink = False
+        self._blink_state = True
         self.value = "    "
         self._stop_event = None
 
@@ -51,14 +53,22 @@ class Display4SD:
 
     def run_loop(self, stop_event):
         self._stop_event = stop_event
+        blink_timer = time.time()
         while not stop_event.is_set():
+            if self.blink:
+                if time.time() - blink_timer > 0.5:
+                    self._blink_state = not self._blink_state
+                    blink_timer = time.time()
+            else:
+                self._blink_state = True
+
             for digit_idx in range(4):
                 for seg_idx in range(7):
                     seg_val = self.num_map.get(self.value[digit_idx], (0,0,0,0,0,0,0))[seg_idx]
                     if not self.simulate:
-                        self.GPIO.output(self.segment_pins[seg_idx], seg_val)
+                        self.GPIO.output(self.segment_pins[seg_idx], seg_val if self._blink_state else 0)
                 if not self.simulate:
-                    self.GPIO.output(self.digit_pins[digit_idx], 0)
+                    self.GPIO.output(self.digit_pins[digit_idx], 0 if self._blink_state else 1)
                 time.sleep(self.update_interval)
                 if not self.simulate:
                     self.GPIO.output(self.digit_pins[digit_idx], 1)

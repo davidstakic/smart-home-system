@@ -5,7 +5,7 @@ except ImportError:
     from mock_rpi import GPIO
     RUNNING_ON_PI = False
 
-class Light:
+class LED:
     def __init__(self, gpio_pin, simulate=False):
         self.gpio_pin = gpio_pin
         self.simulate = simulate

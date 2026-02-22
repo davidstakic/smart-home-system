@@ -54,7 +54,7 @@ def run_membrane_loop(keypad, delay, callback, stop_event):
 
         if value is not None:
             callback(value)
-            
+
         if stop_event.is_set():
             break
 
