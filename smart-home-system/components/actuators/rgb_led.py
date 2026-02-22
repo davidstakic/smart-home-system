@@ -7,14 +7,14 @@ except ImportError:
 class RGBLed:
 
     COLORS = {
-        "off": (0, 0, 0),
-        "white": (1, 1, 1),
-        "red": (1, 0, 0),
-        "green": (0, 1, 0),
-        "blue": (0, 0, 1),
-        "yellow": (1, 1, 0),
-        "purple": (1, 0, 1),
-        "lightblue": (0, 1, 1),
+        "OFF": (0, 0, 0),
+        "WHITE": (1, 1, 1),
+        "RED": (1, 0, 0),
+        "GREEN": (0, 1, 0),
+        "BLUE": (0, 0, 1),
+        "YELLOW": (1, 1, 0),
+        "PURPLE": (1, 0, 1),
+        "LIGHTBLUE": (0, 1, 1),
     }
 
     def __init__(self, red_pin, green_pin, blue_pin, simulate=False):

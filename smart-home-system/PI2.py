@@ -1,6 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 import threading
+import paho.mqtt.client as mqtt
+import json
 
 from components.sensors.button import Button, run_button_loop
 from components.sensors.motion_sensor import MotionSensor, run_motion_loop
@@ -10,6 +12,8 @@ from components.sensors.gyroscope import Gyroscope, run_gyro_loop
 from components.actuators.display_4sd import Display4SD
 from config.config import Config
 from mqtt_batch_sender import MQTTBatchSender
+
+import time
 
 try:
     import RPi.GPIO as GPIO  # type: ignore
@@ -79,90 +83,132 @@ class PI2_Controller:
             mqtt_cfg["send_interval"]
         )
 
+        self.cmd_client = mqtt.Client(client_id=f"{self.device_info['pi_id']}_cmd")
+        self.cmd_client.on_message = self._on_cmd_message
+        self.cmd_client.connect(mqtt_cfg["broker"], mqtt_cfg["port"], 60)
+        cmd_topic = f"smart_home/{self.device_info['pi_id']}/cmd/#"
+        self.cmd_client.subscribe(cmd_topic)
+        self.cmd_client.loop_start()
+
         self.stop_event = threading.Event()
         self.threads = []
 
-    def _send_measurement(self, sensor_type, value):
+    def _send_measurement(self, sensor_type, value, sensor_config_code):
         payload = {
             "pi_id": self.device_info["pi_id"],
             "device_name": self.device_info["device_name"],
             "sensor_type": sensor_type,
-            "simulated": self.config.is_simulated(sensor_type),
+            "simulated": self.config.is_simulated(sensor_config_code),
             "value": value
         }
         self.mqtt_sender.enqueue(payload)
 
     def _door_callback(self, value):
-        self._send_measurement("door_button", value)
+        self._send_measurement("door_button", value, "DS2")
 
     def _motion_callback(self, value):
-        self._send_measurement("door_motion", value)
+        self._send_measurement("door_motion", value, "DPIR2")
 
     def _ultrasonic_callback(self, value):
-        self._send_measurement("door_distance", value)
+        self._send_measurement("door_distance", value, "DUS2")
 
     def _btn_callback(self, value):
-        self._send_measurement("kitchen_button", value)
+        self._send_measurement("kitchen_button", value, "BTN")
 
     def _dht_callback(self, humidity, temperature, code):
-        self._send_measurement("kitchen_dht_humidity", humidity)
-        self._send_measurement("kitchen_dht_temperature", temperature)
+        self._send_measurement("kitchen_dht_humidity", humidity, "DHT3")
+        self._send_measurement("kitchen_dht_temperature", temperature, "DHT3")
 
     def _gyro_callback(self, payload):
-        self._send_measurement("gyroscope", payload)
+        self._send_measurement("gyroscope", payload, "GSG")
+    # def _gyro_callback(self, payload):
+    #     self._send_measurement("gyro_accel_x", payload["accel_x"], "GSG")
+    #     self._send_measurement("gyro_accel_y", payload["accel_y"], "GSG")
+    #     self._send_measurement("gyro_accel_z", payload["accel_z"], "GSG")
+    #     self._send_measurement("gyro_gyro_x", payload["gyro_x"], "GSG")
+    #     self._send_measurement("gyro_gyro_y", payload["gyro_y"], "GSG")
+    #     self._send_measurement("gyro_gyro_z", payload["gyro_z"], "GSG")
+
 
     def start_sensors(self):
-        cfg = self.config
-        self.threads.append(threading.Thread(
-            target=run_button_loop,
-            args=(self.door_sensor, cfg.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event),
-            daemon=True
-        ))
-        self.threads.append(threading.Thread(
-            target=run_motion_loop,
-            args=(self.motion_sensor, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
-            daemon=True
-        ))
-        self.threads.append(threading.Thread(
-            target=run_ultrasonic_loop,
-            args=(self.ultrasonic, cfg.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event),
-            daemon=True
-        ))
-        self.threads.append(threading.Thread(
-            target=run_button_loop,
-            args=(self.button, cfg.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._btn_callback, self.stop_event),
-            daemon=True
-        ))
-        self.threads.append(threading.Thread(
-            target=run_dht_loop,
-            args=(self.dht_sensor, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht_callback, self.stop_event),
-            daemon=True
-        ))
-        self.threads.append(threading.Thread(
-            target=run_gyro_loop,
-            args=(self.gyroscope, cfg.get_value("SENSOR_CONFIG", "GSG_DELAY", 0.1, float), self._gyro_callback, self.stop_event),
-            daemon=True
-        ))
+        return
+        # cfg = self.config
+        # self.threads.append(threading.Thread(
+        #     target=run_button_loop,
+        #     args=(self.door_sensor, cfg.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event),
+        #     daemon=True
+        # ))
+        # self.threads.append(threading.Thread(
+        #     target=run_motion_loop,
+        #     args=(self.motion_sensor, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
+        #     daemon=True
+        # ))
+        # self.threads.append(threading.Thread(
+        #     target=run_ultrasonic_loop,
+        #     args=(self.ultrasonic, cfg.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event),
+        #     daemon=True
+        # ))
+        # self.threads.append(threading.Thread(
+        #     target=run_button_loop,
+        #     args=(self.button, cfg.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._btn_callback, self.stop_event),
+        #     daemon=True
+        # ))
+        # self.threads.append(threading.Thread(
+        #     target=run_dht_loop,
+        #     args=(self.dht_sensor, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht_callback, self.stop_event),
+        #     daemon=True
+        # ))
+        # self.threads.append(threading.Thread(
+        #     target=run_gyro_loop,
+        #     args=(self.gyroscope, cfg.get_value("SENSOR_CONFIG", "GSG_DELAY", 0.1, float), self._gyro_callback, self.stop_event),
+        #     daemon=True
+        # ))
 
-        for t in self.threads:
-            t.start()
+        # for t in self.threads:
+        #     t.start()
 
     def actuator_menu(self):
         try:
             while True:
-                print("\n=== AKTUATORI ===")
-                print("[1] Prikaz na 4SD")
+                print("\n=== PI2 MENI ===")
+                print("--- Aktuatori ---")
+                print("[1] Prikaz na 4SD (ručni unos)")
                 print("[2] Isključi 4SD")
+                print("--- Test senzora / demo ---")
+                print("[3] TEST DPIR2 -> door_motion")
+                print("[4] TEST DUS2 ulazak (ENTRY)")
+                print("[5] TEST DUS2 izlazak (EXIT)")
+                print("[6] TEST DS2 otvoreno 6s (ALARM)")
+                print("[7] TEST GSG movement (ALARM)")
+                print("[8] TEST GSG normal")
+                print("[9] TEST Kitchen BTN (dodavanje N)")
+                print("[10] TEST kitchen DHT (jedan set)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
                 if choice == "1":
                     value = input("Unesi 4-cifreni broj: ").strip().rjust(4)
                     self.display.update(value)
-                    self._send_measurement("display_4sd", value)
+                    self._send_measurement("display_4sd", value, "4SD")
                 elif choice == "2":
                     self.display.turn_off()
-                    self._send_measurement("display_4sd", "    ")
+                    self._send_measurement("display_4sd", "    ", "4SD")
+                elif choice == "3":
+                    self.test_dpir2_pulse()
+                elif choice == "4":
+                    self.test_dus2_entry_sequence()
+                elif choice == "5":
+                    self.test_dus2_exit_sequence()
+                elif choice == "6":
+                    self.test_ds2_open_alarm()
+                elif choice == "7":
+                    self.test_gsg_movement_alarm()
+                elif choice == "8":
+                    self.test_gsg_normal()
+                elif choice == "9":
+                    self.test_kitchen_btn_press()
+                elif choice == "10":
+                    self.test_dht_kitchen_once()
                 elif choice == "0":
                     print("Izlaz...")
                     break
@@ -184,6 +230,87 @@ class PI2_Controller:
         self.start_sensors()
         self.actuator_menu()
         self.cleanup()
+
+    def test_dpir2_pulse(self):
+        print("[TEST] DPIR2 door_motion = 1.0")
+        self._send_measurement("door_motion", 1.0, "DPIR2")
+
+    def test_dus2_entry_sequence(self):
+        seq = [200, 170, 150, 100, 80]
+        print("[TEST] DUS2 ENTRY distances:", seq)
+        for v in seq:
+            self._send_measurement("door_distance", float(v), "DUS2")
+            time.sleep(0.3)
+
+    def test_dus2_exit_sequence(self):
+        seq = [80, 120, 180, 200, 230]
+        print("[TEST] DUS2 EXIT distances:", seq)
+        for v in seq:
+            self._send_measurement("door_distance", float(v), "DUS2")
+            time.sleep(0.3)
+
+    def test_ds2_open_alarm(self):
+        print("[TEST] DS2 door_button = 1.0 (držanje >5s)")
+        self._send_measurement("door_button", 1.0, "DS2")
+        time.sleep(30.0)
+        print("[TEST] DS2 door_button = 0.0 (zatvaranje)")
+        self._send_measurement("door_button", 0.0, "DS2")
+
+    def test_gsg_movement_alarm(self):
+        """Tačka 6: veliki pomeraj GSG."""
+        payload = {
+            "accel_x": 3.0,
+            "accel_y": 0.1,
+            "accel_z": 0.0,
+            "gyro_x": 0.0,
+            "gyro_y": 0.0,
+            "gyro_z": 0.0,
+        }
+        print("[TEST] GSG movement payload:", payload)
+        self._send_measurement("gyroscope", payload, "GSG")
+
+    def test_gsg_normal(self):
+        """Normalno stanje gyroscope."""
+        payload = {
+            "accel_x": 0.1,
+            "accel_y": 0.0,
+            "accel_z": 0.0,
+            "gyro_x": 0.0,
+            "gyro_y": 0.0,
+            "gyro_z": 0.0,
+        }
+        print("[TEST] GSG normal payload:", payload)
+        self._send_measurement("gyroscope", payload, "GSG")
+
+    def test_kitchen_btn_press(self):
+        """Simulira BTN pritisak za štopericu (ako ti BTN šalje 1 -> 0)."""
+        print("[TEST] Kitchen BTN = 1.0 -> 0.0")
+        self._send_measurement("kitchen_button", 1.0, "BTN")
+        time.sleep(0.2)
+        self._send_measurement("kitchen_button", 0.0, "BTN")
+
+    def test_dht_kitchen_once(self):
+        print("[TEST] kitchen DHT -> 55% / 23C")
+        self._send_measurement("kitchen_dht_humidity", 55.0, "DHT3")
+        self._send_measurement("kitchen_dht_temperature", 23.0, "DHT3")
+
+    def _on_cmd_message(self, client, userdata, msg):
+        try:
+            topic_parts = msg.topic.split("/")
+            device = topic_parts[3]
+
+            payload = json.loads(msg.payload.decode())
+            print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
+
+            # if device == "4sd":
+            #     value = payload.get("value")
+            #     if value is not None:
+            #         value_str = str(value)
+            #         value_str = value_str[:4]
+            #         self.display.update(value_str)
+            #         self._send_measurement("display_4sd", value_str, "4SD")
+        except Exception as e:
+            print(f"[CMD ERROR] {e}")
 
 
 if __name__ == "__main__":

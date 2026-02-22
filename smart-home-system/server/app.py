@@ -1,116 +1,266 @@
-from flask import Flask, jsonify, request
+from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
-from mqtt_client import start_mqtt
-from influx_writer import write_sensor_data
-import paho.mqtt.client as mqtt
-import threading
 import json
+
+from influx_client import get_last, get_alarm_events, get_people_count_series
+
+from backend import (
+    init_mqtt_and_loops,
+    send_mqtt_command,
+    stopwatch_lock,
+    stopwatch_state,
+    command_client,
+    door_light_state,
+    VALID_PIN,
+    security_state,
+    arm_system,
+    write_influx,
+    disarm_system,
+    timer_config_pi2,
+    COLORS,
+    handle_ir_mqtt
+)
 
 app = Flask(__name__)
 CORS(app)
+init_mqtt_and_loops()
 
-door_light_state = {"on": False}
-
-command_client = mqtt.Client()
-command_client.connect("localhost", 1883, 60)
-command_client.loop_start()
-
-def on_cmd_message(client, userdata, msg):
-    """Callback - prima komande i piše u InfluxDB"""
-    global door_light_state
-
-    try:
-        if "/cmd/" not in msg.topic:
-            return
-
-        payload = json.loads(msg.payload.decode())
-        action = payload.get("action")
-
-        print(f"[CMD LISTENER] {msg.topic} -> {action}")
-
-        if msg.topic.endswith("door_light"):
-            if action == "on":
-                value = 1.0
-                door_light_state["on"] = True
-            elif action == "off":
-                value = 0.0
-                door_light_state["on"] = False
-            else:
-                return
-
-            influx_payload = {
-                "pi_id": "PI1",
-                "device_name": "SmartDoor",
-                "sensor_type": "door_light",
-                "simulated": False,
-                "value": value
-            }
-
-            write_sensor_data(influx_payload)
-            print(f"[InfluxDB] door_light = {value}")
-
-        elif msg.topic.endswith("door_buzzer"):
-            influx_payload = {
-                "pi_id": "PI1",
-                "device_name": "SmartDoor",
-                "sensor_type": "door_buzzer",
-                "simulated": False,
-                "value": 1.0
-            }
-
-            write_sensor_data(influx_payload)
-            print(f"[InfluxDB] door_buzzer = 1.0")
-
-    except Exception as e:
-        print(f"[CMD ERROR] {e}")
-        import traceback
-        traceback.print_exc()
-
-cmd_listener = mqtt.Client(client_id="flask_cmd_listener")
-cmd_listener.on_message = on_cmd_message
-cmd_listener.connect("localhost", 1883, 60)
-cmd_listener.subscribe("smart_home/+/cmd/#")
-cmd_listener.loop_start()
-print("Command listener started")
-
-@app.route('/health')
+@app.route("/health")
 def health():
     return jsonify({"status": "running"})
 
-@app.route('/api/actuator/light', methods=['POST'])
+# ---------- UI Routes ----------
+
+@app.get("/")
+def index():
+    return render_template("index.html")
+
+@app.get("/PI1")
+def pi1_page():
+    return render_template("PI1.html")
+
+@app.get("/PI2")
+def pi2_page():
+    return render_template("PI2.html")
+
+@app.get("/PI3")
+def pi3_page():
+    return render_template("PI3.html")
+
+@app.get("/alarm")
+def alarm_page():
+    return render_template("alarm.html")
+
+@app.get("/camera")
+def camera_page():
+    return render_template("camera.html")
+
+# ---------- API: Alarm & global ----------
+
+@app.get("/api/alarm/state")
+def api_alarm_state():
+    return jsonify({
+        "alarm_state": get_last("alarm_state", None),
+        "people_count": get_last("people_count", None),
+    })
+
+@app.get("/api/alarm/events")
+def api_alarm_events():
+    events = get_alarm_events(limit=50)
+    return jsonify(events)
+
+@app.get("/api/people/series")
+def api_people_series():
+    window = request.args.get("window", "1m")
+    series = get_people_count_series(window=window)
+    return jsonify(series)
+
+# ---------- Actuators PI1 ----------
+
+@app.route("/api/actuator/light", methods=["POST"])
 def control_light():
     global door_light_state
-
-    data = request.json
-    action = data.get('action')
-
+    data = request.json or {}
+    action = data.get("action")
     if action == "toggle":
         door_light_state["on"] = not door_light_state["on"]
         action = "on" if door_light_state["on"] else "off"
-        print(f"[TOGGLE] {action}")
-
-    mqtt_payload = {"action": action}
-    command_client.publish("smart_home/pi1/cmd/door_light", json.dumps(mqtt_payload))
-
+    print(f"[TOGGLE] {action}")
+    send_mqtt_command("PI1", "door_light", action)
     return jsonify({"status": "success", "action": action})
 
-@app.route('/api/actuator/buzzer', methods=['POST'])
+@app.route("/api/actuator/buzzer", methods=["POST"])
 def control_buzzer():
-    data = request.json
-    action = data.get('action', 'beep')
-    times = data.get('times', 3)
-    duration = data.get('duration', 0.2)
-
+    data = request.json or {}
+    action = data.get("action", "beep")
+    times = data.get("times", 3)
+    duration = data.get("duration", 0.2)
     mqtt_payload = {"action": action, "times": times, "duration": duration}
-    command_client.publish("smart_home/pi1/cmd/door_buzzer", json.dumps(mqtt_payload))
-
+    send_mqtt_command("PI1", "door_buzzer", mqtt_payload)
     return jsonify({"status": "success", "action": action})
 
-def init_mqtt():
-    mqtt_thread = threading.Thread(target=start_mqtt, daemon=True)
-    mqtt_thread.start()
-    print("MQTT sensor listener started")
+# ---------- PI3 RGB & LCD ----------
 
-if __name__ == '__main__':
-    init_mqtt()
-    app.run(host='0.0.0.0', port=5001, debug=False)
+@app.route("/api/actuator/rgb_led", methods=["POST"])
+def control_rgb_led():
+    # stari endpoint, ostavljen radi kompatibilnosti (koristi PI3)
+    data = request.json or {}
+    color = data.get("color", "OFF")
+    command_client.publish(
+        "smart_home/PI3/cmd/rgb_led", json.dumps({"color": color})
+    )
+    return jsonify({"status": "success", "color": color})
+
+@app.route("/api/PI3/rgb", methods=["POST"])
+def pi3_set_rgb():
+    data = request.json or {}
+    color = str(data.get("color", "OFF")).upper().strip()
+
+    if color not in COLORS:
+        return jsonify({
+            "success": False,
+            "message": f"Invalid color '{color}'. Allowed: {sorted(COLORS)}"
+        }), 400
+
+    handle_ir_mqtt('PI3', color)
+
+    # po želji uključi log u Influx
+    # write_influx("PI3", "rgb_led", color, device_name="BedroomRGB")
+
+    return jsonify({"success": True, "color": color})
+
+@app.route("/api/PI3/lcd", methods=["POST"])
+def pi3_set_lcd():
+    data = request.json or {}
+    text = str(data.get("text", "")).strip()
+
+    if not text:
+        return jsonify({
+            "success": False,
+            "message": "Text must not be empty."
+        }), 400
+
+    max_len = 32
+    if len(text) > max_len:
+        text = text[:max_len]
+
+    command_client.publish(
+        "smart_home/PI3/cmd/lcd",
+        json.dumps({"text": text})
+    )
+
+    # write_influx("PI3", "lcd_message", text, device_name="LivingRoomLCD")
+
+    return jsonify({"success": True, "text": text})
+
+# ---------- Alarm arm/deactivate ----------
+
+@app.route("/api/alarm/arm", methods=["POST"])
+def api_alarm_arm():
+    global arming_timer, entry_timer  # definisani u backend.security_state scope-u
+    data = request.json or {}
+    pin = str(data.get("pin", "")).strip()
+    armed = bool(data.get("armed", False))
+
+    if pin != VALID_PIN:
+        return jsonify({"success": False, "message": "Invalid PIN"}), 401
+
+    if armed:
+        if security_state["mode"] == "ARMED":
+            return jsonify({"success": True, "message": "Already armed"})
+        arm_system()
+        write_influx("SERVER", "alarm_event", "armed_web", device_name="SecuritySystem")
+        return jsonify({"success": True, "message": "System arming"})
+    else:
+        if security_state["mode"] != "DISARMED":
+            disarm_system()
+            write_influx("SERVER", "alarm_event", "disarmed_web", device_name="SecuritySystem")
+        return jsonify({"success": True, "message": "System disarmed"})
+
+@app.route("/api/alarm/deactivate", methods=["POST"])
+def api_alarm_deactivate():
+    data = request.json or {}
+    pin = str(data.get("pin", "")).strip()
+
+    if pin != VALID_PIN:
+        return jsonify({"success": False, "message": "Invalid PIN"}), 401
+
+    if security_state["mode"] == "ALARM":
+        print("[SECURITY] Alarm deactivated via web")
+        security_state["mode"] = "ARMED"
+        write_influx("SERVER", "alarm_state", 0.0, device_name="SecuritySystem")
+        send_mqtt_command("PI1", "door_buzzer", "off")
+        # disarm_system()
+        # write_influx("SERVER", "alarm_event", "disarmed_web", device_name="SecuritySystem")
+
+    return jsonify({"success": True, "message": "System disarmed"})
+
+
+# ---------- PI2 timer-config ----------
+
+@app.route("/api/PI2/timer-config", methods=["POST"])
+def api_pi2_timer_config():
+    data = request.json or {}
+    try:
+        initial_seconds = int(data.get("initial_seconds", 0))
+        btn_increment = int(data.get("btn_increment", 5))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Invalid numeric values"}), 400
+
+    if initial_seconds < 0 or btn_increment <= 0:
+        return jsonify({"success": False, "message": "Values must be >=0 and >0"}), 400
+
+    timer_config_pi2["initial_seconds"] = initial_seconds
+    timer_config_pi2["btn_increment"] = btn_increment
+
+    print(f"[TIMER CONFIG] PI2 initial={initial_seconds}s, btn_increment={btn_increment}s")
+
+    command_client.publish(
+        "smart_home/PI2/cmd/timer_config",
+        json.dumps({
+            "initial_seconds": initial_seconds,
+            "btn_increment": btn_increment,
+        }),
+    )
+
+    write_influx("PI2", "timer_initial_seconds", float(initial_seconds), device_name="KitchenTimer")
+    write_influx("PI2", "timer_btn_increment", float(btn_increment), device_name="KitchenTimer")
+
+    return jsonify({"success": True})
+
+# ---------- Stopwatch debug API (ostavljeno) ----------
+
+@app.route("/api/stopwatch/set_time", methods=["POST"])
+def set_stopwatch_time():
+    data = request.json or {}
+    mins = data.get("minutes", 0)
+    secs = data.get("seconds", 0)
+    with stopwatch_lock:
+        stopwatch_state["time_sec"] = mins * 60 + secs
+        stopwatch_state["running"] = True
+    return jsonify({"status": "success", "time_sec": stopwatch_state["time_sec"]})
+
+@app.route("/api/stopwatch/set_add_sec", methods=["POST"])
+def set_add_seconds():
+    data = request.json or {}
+    n = data.get("add_sec", 5)
+    with stopwatch_lock:
+        stopwatch_state["add_sec"] = n
+    return jsonify({"status": "success", "add_sec": stopwatch_state["add_sec"]})
+
+@app.route("/api/stopwatch/add_sec", methods=["POST"])
+def add_stopwatch_seconds():
+    with stopwatch_lock:
+        if stopwatch_state["blink"]:
+            stopwatch_state["blink"] = False
+            command_client.publish(
+                "smart_home/PI1/cmd/4sd", json.dumps({"value": "0000"})
+            )
+        elif stopwatch_state["running"]:
+            stopwatch_state["time_sec"] += stopwatch_state["add_sec"]
+        else:
+            stopwatch_state["running"] = True
+    return jsonify({"status": "success", "time_sec": stopwatch_state["time_sec"]})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5001, debug=False)
