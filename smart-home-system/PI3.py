@@ -38,7 +38,7 @@ class PI3_Controller:
         blue_pin = self.config.get_pin("LED_BLUE")
         ir_pin = self.config.get_pin("IR_PIN")
         dht1_pin = self.config.get_pin("DHT1_PIN")
-        dht2_pin = self.config.get_pin("DHT1_PIN")
+        dht2_pin = self.config.get_pin("DHT2_PIN")
         dpir3_pin = self.config.get_pin("DPIR3_PIN")
 
         self.dht1 = DHTSensor(dht1_pin, self.config.is_simulated("DHT1"))
