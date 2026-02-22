@@ -294,9 +294,6 @@ def on_cmd_message(client, userdata, msg):
                     timer.cancel()
                     door_button_timers.pop(pi_id, None)
 
-                if security_state["mode"] == "ALARM":
-                    disarm_system()
-
         # Kitchen button (BTN)
         if category == "sensor" and payload.get("sensor_type") == "kitchen_button":
             print("KITCHEN BUTTON " + str(pi_id))
@@ -384,5 +381,5 @@ def init_mqtt_and_loops():
 
     stop_event = threading.Event()
     threading.Thread(
-        target=stopwatch_loop, args=("PI1", stop_event), daemon=True
+        target=stopwatch_loop, args=("PI2", stop_event), daemon=True
     ).start()

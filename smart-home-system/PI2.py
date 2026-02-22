@@ -302,7 +302,7 @@ class PI2_Controller:
             payload = json.loads(msg.payload.decode())
             print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
 
-            if device == "4sd":
+            if device == "timer_config":
                 value = payload.get("value")
                 blink = payload.get("blink")
                 if value is not None:

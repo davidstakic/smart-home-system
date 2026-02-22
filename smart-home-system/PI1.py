@@ -219,7 +219,7 @@ class PI1_Controller:
         self._send_measurement("door_button", 1.0, "DS1")
         time.sleep(10.0)
         print("[TEST] DS1 door_button = 0.0 (zatvaranje)")
-        self._send_measurement("door_button", 0.0, "DS1")
+        # self._send_measurement("door_button", 0.0, "DS1")
 
     def test_dms_pin(self):
         """Tačka 4A: DMS PIN 1234."""

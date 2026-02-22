@@ -18,7 +18,8 @@ from backend import (
     disarm_system,
     timer_config_pi2,
     COLORS,
-    handle_ir_mqtt
+    handle_ir_mqtt,
+    activate_alarm
 )
 
 app = Flask(__name__)
@@ -182,9 +183,6 @@ def api_alarm_deactivate():
     data = request.json or {}
     pin = str(data.get("pin", "")).strip()
 
-    if pin != VALID_PIN:
-        return jsonify({"success": False, "message": "Invalid PIN"}), 401
-
     if security_state["mode"] == "ALARM":
         print("[SECURITY] Alarm deactivated via web")
         security_state["mode"] = "ARMED"
@@ -192,6 +190,9 @@ def api_alarm_deactivate():
         send_mqtt_command("PI1", "door_buzzer", "off")
         # disarm_system()
         # write_influx("SERVER", "alarm_event", "disarmed_web", device_name="SecuritySystem")
+
+    if security_state["mode"] == "ARMED" and pin != VALID_PIN:
+        activate_alarm()
 
     return jsonify({"success": True, "message": "System disarmed"})
 
@@ -215,38 +216,14 @@ def api_pi2_timer_config():
 
     print(f"[TIMER CONFIG] PI2 initial={initial_seconds}s, btn_increment={btn_increment}s")
 
-    command_client.publish(
-        "smart_home/PI2/cmd/timer_config",
-        json.dumps({
-            "initial_seconds": initial_seconds,
-            "btn_increment": btn_increment,
-        }),
-    )
+    with stopwatch_lock:
+        stopwatch_state["time_sec"] = initial_seconds
+        stopwatch_state["running"] = True
 
     write_influx("PI2", "timer_initial_seconds", float(initial_seconds), device_name="KitchenTimer")
     write_influx("PI2", "timer_btn_increment", float(btn_increment), device_name="KitchenTimer")
 
-    return jsonify({"success": True})
-
-# ---------- Stopwatch debug API (ostavljeno) ----------
-
-@app.route("/api/stopwatch/set_time", methods=["POST"])
-def set_stopwatch_time():
-    data = request.json or {}
-    mins = data.get("minutes", 0)
-    secs = data.get("seconds", 0)
-    with stopwatch_lock:
-        stopwatch_state["time_sec"] = mins * 60 + secs
-        stopwatch_state["running"] = True
-    return jsonify({"status": "success", "time_sec": stopwatch_state["time_sec"]})
-
-@app.route("/api/stopwatch/set_add_sec", methods=["POST"])
-def set_add_seconds():
-    data = request.json or {}
-    n = data.get("add_sec", 5)
-    with stopwatch_lock:
-        stopwatch_state["add_sec"] = n
-    return jsonify({"status": "success", "add_sec": stopwatch_state["add_sec"]})
+    return jsonify({"success": True, "time_sec": stopwatch_state["time_sec"]})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=False)
