@@ -304,11 +304,18 @@ class PI2_Controller:
 
             if device == "4sd":
                 value = payload.get("value")
+                blink = payload.get("blink")
                 if value is not None:
                     value_str = str(value)
                     value_str = value_str[:4]
-                    self.display.update(value_str)
-                    self._send_measurement("display_4sd", value_str, "4SD")
+                    if blink:
+                        self.display.blink = True
+                        self.display.update(value_str)
+                        self._send_measurement("display_4sd", value_str, "4SD")
+                    else:
+                        self.display.blink = False
+                        self.display.update(value_str)
+                        self._send_measurement("display_4sd", value_str, "4SD")
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

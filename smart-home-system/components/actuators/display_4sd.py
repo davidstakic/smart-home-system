@@ -50,6 +50,7 @@ class Display4SD:
 
     def update(self, value: str):
         self.value = str(value).rjust(4)
+        print("[DISPLAY] " + str(value))
 
     def run_loop(self, stop_event):
         self._stop_event = stop_event

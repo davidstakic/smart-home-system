@@ -237,18 +237,18 @@ class PI1_Controller:
 
             action = payload.get("action")
 
-            # if device == "door_light":
-            #     if action == "on":
-            #         self.door_light.turn_on()
-            #         self._send_measurement("door_light", 1.0, "DL")
-            #     elif action == "off":
-            #         self.door_light.turn_off()
-            #         self._send_measurement("door_light", 0.0, "DL")
-            # elif device == "door_buzzer":
-            #     if action == "on":
-            #         self.buzzer.continuous(5.0)
-            #     # elif action == "off":
-            #     #     self.buzzer.stop()
+            if device == "door_light":
+                if action == "on":
+                    self.door_light.turn_on()
+                    self._send_measurement("door_light", 1.0, "DL")
+                elif action == "off":
+                    self.door_light.turn_off()
+                    self._send_measurement("door_light", 0.0, "DL")
+            elif device == "door_buzzer":
+                if action == "on":
+                    self.buzzer.continuous(5.0)
+                elif action == "off":
+                    self.buzzer.stop()
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

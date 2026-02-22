@@ -248,19 +248,5 @@ def set_add_seconds():
         stopwatch_state["add_sec"] = n
     return jsonify({"status": "success", "add_sec": stopwatch_state["add_sec"]})
 
-@app.route("/api/stopwatch/add_sec", methods=["POST"])
-def add_stopwatch_seconds():
-    with stopwatch_lock:
-        if stopwatch_state["blink"]:
-            stopwatch_state["blink"] = False
-            command_client.publish(
-                "smart_home/PI1/cmd/4sd", json.dumps({"value": "0000"})
-            )
-        elif stopwatch_state["running"]:
-            stopwatch_state["time_sec"] += stopwatch_state["add_sec"]
-        else:
-            stopwatch_state["running"] = True
-    return jsonify({"status": "success", "time_sec": stopwatch_state["time_sec"]})
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=False)

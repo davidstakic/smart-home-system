@@ -205,7 +205,6 @@ def format_time_4sd(total_sec):
 
 
 def stopwatch_loop(pi_id, stop_event):
-    blink_state = False
     while not stop_event.is_set():
         with stopwatch_lock:
             if stopwatch_state["running"]:
@@ -214,18 +213,15 @@ def stopwatch_loop(pi_id, stop_event):
                     display_value = format_time_4sd(stopwatch_state["time_sec"])
                     command_client.publish(
                         f"smart_home/{pi_id}/cmd/4sd",
-                        json.dumps({"value": display_value}),
+                        json.dumps({"value": display_value, "blink": False}),
                     )
                 else:
                     stopwatch_state["blink"] = True
                     stopwatch_state["running"] = False
-            elif stopwatch_state["blink"]:
-                blink_state = not blink_state
-                display_value = "0000" if blink_state else "    "
-                command_client.publish(
-                    f"smart_home/{pi_id}/cmd/4sd",
-                    json.dumps({"value": display_value}),
-                )
+                    command_client.publish(
+                        f"smart_home/{pi_id}/cmd/4sd",
+                        json.dumps({"value": "0000", "blink": True}),
+                    )
         time.sleep(1)
 
 # ========== MQTT CALLBACK – SENZORI I KOMANDE ==========
@@ -300,6 +296,18 @@ def on_cmd_message(client, userdata, msg):
                 if security_state["mode"] == "ALARM":
                     disarm_system()
 
+        # Kitchen button (BTN)
+        if category == "sensor" and payload.get("sensor_type") == "kitchen_button":
+            print("KITCHEN BUTTON " + str(pi_id))
+            with stopwatch_lock:
+                if stopwatch_state["blink"]:
+                    stopwatch_state["blink"] = False
+                    command_client.publish(
+                        f"smart_home/{pi_id}/cmd/4sd",
+                        json.dumps({"value": "0000", "blink": False}),
+                    )
+                elif stopwatch_state["running"]:
+                    stopwatch_state["time_sec"] += stopwatch_state["add_sec"]
 
         # Door membrane (PIN)
         if category == "sensor" and payload.get("sensor_type") == "door_membrane":
