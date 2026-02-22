@@ -215,12 +215,12 @@ class PI1_Controller:
         self._send_measurement("door_button", 1.0, "DS1")
         time.sleep(10.0)
         print("[TEST] DS1 door_button = 0.0 (zatvaranje)")
-        self._send_measurement("door_button", 0.0, "DS1")
+        # self._send_measurement("door_button", 0.0, "DS1")
 
     def test_dms_pin(self):
         """Tačka 4A: DMS PIN 1234."""
         pin = "1234"
-        print(f"[TEST] DMS door_membrane = {pin}")
+        # print(f"[TEST] DMS door_membrane = {pin}")
         self._send_measurement("door_membrane", pin, "DMS")
 
     def _on_cmd_message(self, client, userdata, msg):
@@ -229,23 +229,23 @@ class PI1_Controller:
             device = topic_parts[3]
 
             payload = json.loads(msg.payload.decode())
-            print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
+            # print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
 
             action = payload.get("action")
 
-            # if device == "door_light":
-            #     if action == "on":
-            #         self.door_light.turn_on()
-            #         self._send_measurement("door_light", 1.0, "DL")
-            #     elif action == "off":
-            #         self.door_light.turn_off()
-            #         self._send_measurement("door_light", 0.0, "DL")
-            # elif device == "door_buzzer":
-            #     if action == "on":
-            #         self.buzzer.continuous(5.0)
-            #     # dodati stop metodu
-            #     # elif action == "off":
-            #     #     self.buzzer.stop()
+            if device == "door_light":
+                if action == "on":
+                    self.door_light.turn_on()
+                    self._send_measurement("door_light", 1.0, "DL")
+                elif action == "off":
+                    self.door_light.turn_off()
+                    self._send_measurement("door_light", 0.0, "DL")
+            elif device == "door_buzzer":
+                if action == "on":
+                    self.buzzer.continuous(5.0)
+                # dodati stop metodu
+                # elif action == "off":
+                #     self.buzzer.stop()
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

@@ -95,34 +95,34 @@ class PI3_Controller:
 
     def start_sensors(self):
         return
-        # cfg = self.config
+        cfg = self.config
 
-        # self.threads.append(threading.Thread(
-        #     target=run_dht_loop,
-        #     args=(self.dht1, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht1_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_dht_loop,
+            args=(self.dht1, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht1_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_dht_loop,
-        #     args=(self.dht2, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht2_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_dht_loop,
+            args=(self.dht2, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht2_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_motion_loop,
-        #     args=(self.dpir3, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_motion_loop,
+            args=(self.dpir3, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_ir_loop,
-        #     args=(self.ir_sensor, cfg.get_value("SENSOR_CONFIG", "IR_DELAY", 0.2, float), self._ir_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_ir_loop,
+            args=(self.ir_sensor, cfg.get_value("SENSOR_CONFIG", "IR_DELAY", 0.2, float), self._ir_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # for t in self.threads:
-        #     t.start()
+        for t in self.threads:
+            t.start()
 
     def actuator_menu(self):
         try:
@@ -136,11 +136,14 @@ class PI3_Controller:
                 print("[5] Turn off RGB")
                 print("[6] Update LCD message (ručno)")
                 print("--- Test senzora / demo ---")
-                print("[7] TEST bedroom DHT (jedan set)")
-                print("[8] TEST master DHT (jedan set)")
-                print("[9] TEST IR dugme '1'")
-                print("[10] TEST IR dugme '2'")
-                print("[11] TEST IR dugme '0' (OFF)")
+                print("[7] TEST DPIR3 -> door_motion")
+                print("[8] TEST DUS3 ulazak (ENTRY)")
+                print("[9] TEST DUS3 izlazak (EXIT)")
+                print("[10] TEST bedroom DHT (jedan set)")
+                print("[11] TEST master DHT (jedan set)")
+                print("[12] TEST IR dugme '1'")
+                print("[13] TEST IR dugme '2'")
+                print("[14] TEST IR dugme '0' (OFF)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
@@ -164,14 +167,20 @@ class PI3_Controller:
                     self.lcd.display(msg)
                     self._send_measurement("lcd_message", msg, "LCD")
                 elif choice == "7":
-                    self.test_dht_bedroom_once()
+                    self.test_dpir3_pulse()
                 elif choice == "8":
-                    self.test_dht_master_once()
+                    self.test_dus3_entry_sequence()
                 elif choice == "9":
-                    self.test_ir_button("1")
+                    self.test_dus3_exit_sequence()
                 elif choice == "10":
-                    self.test_ir_button("2")
+                    self.test_dht_bedroom_once()
                 elif choice == "11":
+                    self.test_dht_master_once()
+                elif choice == "12":
+                    self.test_ir_button("1")
+                elif choice == "13":
+                    self.test_ir_button("2")
+                elif choice == "14":
                     self.test_ir_button("*")
                 elif choice == "0":
                     print("Izlaz...")
@@ -212,6 +221,24 @@ class PI3_Controller:
         print(f"[TEST] bedroom_ir = {value}")
         self._send_measurement("bedroom_ir", value, "IR")
 
+    def test_dpir3_pulse(self):
+        print("[TEST] DPIR3 door_motion = 1.0")
+        self._send_measurement("door_motion", 1.0, "DPIR3")
+
+    def test_dus3_entry_sequence(self):
+        seq = [200, 170, 150, 100, 80]
+        print("[TEST] DUS3 ENTRY distances:", seq)
+        for v in seq:
+            self._send_measurement("door_distance", float(v), "DUS3")
+            time.sleep(0.3)
+
+    def test_dus3_exit_sequence(self):
+        seq = [80, 120, 180, 200, 230]
+        print("[TEST] DUS3 EXIT distances:", seq)
+        for v in seq:
+            self._send_measurement("door_distance", float(v), "DUS3")
+            time.sleep(0.3)
+
     def _on_cmd_message(self, client, userdata, msg):
         try:
             topic_parts = msg.topic.split("/")
@@ -220,23 +247,23 @@ class PI3_Controller:
             payload = json.loads(msg.payload.decode())
             print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
 
-            # if device == "rgb_led":
-            #     color = payload.get("color")
-            #     if color:
-            #         if color in ["*", "#"]:
-            #             self.rgb_led.turn_off()
-            #         else:
-            #             self.rgb_led.set_color(color)
-            #         self._send_measurement("rgb_led", color, "BRGB")
-            # elif device == "lcd":
-            #     action = payload.get("action")
-            #     if action == "display":
-            #         line1 = payload.get("line1", "")
-            #         line2 = payload.get("line2", "")
+            if device == "rgb_led":
+                color = payload.get("color")
+                if color:
+                    if color in ["*", "#"]:
+                        self.rgb_led.turn_off()
+                    else:
+                        self.rgb_led.set_color(color)
+                    self._send_measurement("rgb_led", color, "BRGB")
+            elif device == "lcd":
+                action = payload.get("action")
+                if action == "display":
+                    line1 = payload.get("line1", "")
+                    line2 = payload.get("line2", "")
 
-            #         self.lcd.display(line1, line=1)
-            #         self.lcd.display(line2, line=2)
-            #         self._send_measurement("lcd_message", line1 + " " + line2, "LCD")
+                    self.lcd.display(line1, line=1)
+                    self.lcd.display(line2, line=2)
+                    self._send_measurement("lcd_message", line1 + " " + line2, "LCD")
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

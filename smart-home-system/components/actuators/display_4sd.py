@@ -47,6 +47,7 @@ class Display4SD:
             self.GPIO = None
 
     def update(self, value: str):
+        print(f"[DISPLAY UPDATE] value = {value}")
         self.value = str(value).rjust(4)
 
     def run_loop(self, stop_event):

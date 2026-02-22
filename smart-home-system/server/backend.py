@@ -98,8 +98,8 @@ def turn_light_for_10s(pi_id):
 
 
 def detect_direction(pi_id):
-    """Update people_count based on ultrasonic distance history."""
     global people_count
+
     history = distance_history.get(pi_id)
     if not history or len(history) < 5:
         return
@@ -108,14 +108,26 @@ def detect_direction(pi_id):
     diff = values[-1] - values[0]
     threshold = 15
 
+    changed = False
+
     if diff < -threshold:
         people_count += 1
         print(f"[ENTRY] Person entered. Count = {people_count}")
+        changed = True
+
     elif diff > threshold and people_count > 0:
         people_count -= 1
         print(f"[EXIT] Person exited. Count = {people_count}")
+        changed = True
+
+    if changed:
+        # upiši u Influx kao measurement "people_count"
+        write_influx("SERVER", "people_count", float(people_count), device_name="SecuritySystem")
 
 # ========== ALARM LOGIKA ==========
+
+def write_alarm_event(measurement: str, value: float = 1.0):
+    write_influx("SERVER", measurement, value, device_name="SecuritySystem")
 
 def arm_system():
     global arming_timer
@@ -123,13 +135,14 @@ def arm_system():
         return
     print("[SECURITY] ARMING... 10 seconds delay")
     security_state["mode"] = "ARMING"
+    write_alarm_event("alarm_state")
     arming_timer = threading.Timer(10.0, complete_arming)
     arming_timer.start()
-
 
 def complete_arming():
     security_state["mode"] = "ARMED"
     print("[SECURITY] SYSTEM ARMED")
+    write_alarm_event("alarm_armed", 0)
 
 
 def activate_alarm(reason=None):
@@ -166,7 +179,7 @@ def start_lcd_cycle(pi_id):
         if not rooms:
             return
         
-        print("LCD")
+        # print("LCD")
 
         room = rooms[index % len(rooms)]
         index += 1
@@ -239,7 +252,7 @@ def on_cmd_message(client, userdata, msg):
 
         pi_id, category, device = topic_parts[1], topic_parts[2], topic_parts[3]
         payload = json.loads(msg.payload.decode())
-        print(f"[MQTT] {msg.topic} -> {payload} : {category}")
+        # print(f"[MQTT] {msg.topic} -> {payload} : {category}")
 
         # Door motion
         if category == "sensor" and payload.get("sensor_type") == "door_motion" and payload.get("value") == 1.0:
@@ -315,9 +328,11 @@ def on_cmd_message(client, userdata, msg):
         # GSG movement
         if category == "sensor" and payload.get("sensor_type") == "gyroscope":
             print("DOOR GSG " + str(pi_id))
-            ax = payload.get("accel_x", 0)
-            ay = payload.get("accel_y", 0)
-            az = payload.get("accel_z", 0)
+            print(f"[MQTT] {msg.topic} -> {payload} : {category}")
+            value = payload.get("value", {})
+            ax = value.get("accel_x", 0)
+            ay = value.get("accel_y", 0)
+            az = value.get("accel_z", 0)
             magnitude = math.sqrt(ax * ax + ay * ay + az * az)
             print(f"[GSG] Magnitude: {magnitude}")
             if magnitude > 1.5 or magnitude < 0.5:
