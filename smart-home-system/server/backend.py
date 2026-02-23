@@ -269,17 +269,18 @@ def on_cmd_message(client, userdata, msg):
 
                 # startuj novi timer od 5s
                 def check_door_still_open():
-                    # ako i dalje postoji zapis i nije stiglo 0.0
                     if pi_id in door_open_start:
-                        # ovde je prošlo 5s i nije bilo zatvaranja -> ALARM
-                        activate_alarm()
-
                         if security_state["mode"] == "ARMED":
-                            print("[SECURITY] Door opened. Waiting for PIN...")
+                            print("[SECURITY] Door opened. Starting entry delay...")
                             security_state["mode"] = "ENTRY_DELAY"
                             global entry_timer
                             entry_timer = threading.Timer(10.0, activate_alarm)
                             entry_timer.start()
+                        elif security_state["mode"] != "DISARMED":
+                            activate_alarm()
+                        else:
+                            # vrata otvorena >5s čak i kad je DISARMED
+                            activate_alarm()
 
                 t = threading.Timer(5.0, check_door_still_open)
                 door_button_timers[pi_id] = t
