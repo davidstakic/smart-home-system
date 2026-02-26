@@ -76,30 +76,6 @@ def api_people_series():
     series = get_people_count_series(window=window)
     return jsonify(series)
 
-# ---------- Actuators PI1 ----------
-
-@app.route("/api/actuator/light", methods=["POST"])
-def control_light():
-    global door_light_state
-    data = request.json or {}
-    action = data.get("action")
-    if action == "toggle":
-        door_light_state["on"] = not door_light_state["on"]
-        action = "on" if door_light_state["on"] else "off"
-    print(f"[TOGGLE] {action}")
-    send_mqtt_command("PI1", "door_light", action)
-    return jsonify({"status": "success", "action": action})
-
-@app.route("/api/actuator/buzzer", methods=["POST"])
-def control_buzzer():
-    data = request.json or {}
-    action = data.get("action", "beep")
-    times = data.get("times", 3)
-    duration = data.get("duration", 0.2)
-    mqtt_payload = {"action": action, "times": times, "duration": duration}
-    send_mqtt_command("PI1", "door_buzzer", mqtt_payload)
-    return jsonify({"status": "success", "action": action})
-
 # ---------- PI3 RGB & LCD ----------
 
 @app.route("/api/actuator/rgb_led", methods=["POST"])

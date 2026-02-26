@@ -25,6 +25,7 @@ arming_timer = None
 entry_timer = None
 
 VALID_PIN = "1234"
+entered_pin = ""
 
 people_count = 0
 
@@ -177,10 +178,19 @@ def start_lcd_cycle(pi_id):
             timer.start()
             return
 
-        line1 = f"{room.capitalize()} Temp: {sensor['temperature']:.1f}C"
-        line2 = f"Hum: {sensor['humidity']:.1f}%"
-        lcd_payload = {"action": "display", "line1": line1, "line2": line2}
-        command_client.publish(f"smart_home/{pi_id}/cmd/lcd", json.dumps(lcd_payload))
+        line1 = f"{room.capitalize()[:6]} T:{sensor['temperature']:.1f}C"
+        line2 = f"H:{sensor['humidity']:.1f}%"
+        line1 = line1[:16]
+        line2 = line2[:16]
+        message = f"{line1}\n{line2}"
+        lcd_payload = {
+            "action": "display",
+            "message": message
+        }
+        command_client.publish(
+            f"smart_home/{pi_id}/cmd/lcd",
+            json.dumps(lcd_payload)
+        )
 
         timer = threading.Timer(LCD_SWITCH_DELAY, cycle)
         lcd_timers[pi_id] = timer
@@ -309,14 +319,27 @@ def on_cmd_message(client, userdata, msg):
 
         # Door membrane (PIN)
         if category == "sensor" and payload.get("sensor_type") == "door_membrane":
-            # print("DOOR MEMBRANE " + str(pi_id))
-            pin = payload.get("value")
-            if pin == VALID_PIN:
-                if security_state["mode"] in ["ARMING", "ARMED", "ENTRY_DELAY", "ALARM"]:
+            global entered_pin
+            print("DOOR MEMBRANE " + str(pi_id))
+            key = payload.get("value")
+
+            if key is None:
+                return
+
+            entered_pin += str(key)
+
+            if len(entered_pin) == 4:
+                print(f"[SECURITY] Entered PIN: {entered_pin}")
+                if entered_pin == VALID_PIN:
                     print("[SECURITY] Correct PIN")
-                    disarm_system()
+                    if security_state["mode"] in ["ARMING", "ARMED", "ENTRY_DELAY", "ALARM"]:
+                        disarm_system()
+                    else:
+                        arm_system()
                 else:
-                    arm_system()
+                    print("[SECURITY] Incorrect PIN")
+
+                entered_pin = ""
 
         # GSG movement
         if category == "sensor" and payload.get("sensor_type") == "gyroscope":
