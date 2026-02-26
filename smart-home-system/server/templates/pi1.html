@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="mt-lg">
+  <h3>PI1 - PODACI</h3>
+
+  <div class="grid grid-2 mt-lg">
+    <div class="card">
+      <h4>Panel 4</h4>
+      <div class="iframe-wrapper">
+        <iframe
+          src="http://localhost:3000/d-solo/smart-home/smart-home?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_INFLUXDB=ffc7lwmuo38xsf&var-bucket=iot_sensors&var-pi_id=PI1&refresh=5s&panelId=panel-4&__feature.dashboardSceneSolo=true"
+          width="100%"
+          height="200"
+          frameborder="0"
+        ></iframe>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Panel 5</h4>
+      <div class="iframe-wrapper">
+        <iframe
+          src="http://localhost:3000/d-solo/smart-home/smart-home?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_INFLUXDB=ffc7lwmuo38xsf&var-bucket=iot_sensors&var-pi_id=PI1&refresh=5s&panelId=panel-5&__feature.dashboardSceneSolo=true"
+          width="100%"
+          height="200"
+          frameborder="0"
+        ></iframe>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Panel 6</h4>
+      <div class="iframe-wrapper">
+        <iframe
+          src="http://localhost:3000/d-solo/smart-home/smart-home?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_INFLUXDB=ffc7lwmuo38xsf&var-bucket=iot_sensors&var-pi_id=PI1&refresh=5s&panelId=panel-6&__feature.dashboardSceneSolo=true"
+          width="100%"
+          height="200"
+          frameborder="0"
+        ></iframe>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Panel 7</h4>
+      <div class="iframe-wrapper">
+        <iframe
+          src="http://localhost:3000/d-solo/smart-home/smart-home?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_INFLUXDB=ffc7lwmuo38xsf&var-bucket=iot_sensors&var-pi_id=PI1&refresh=5s&panelId=panel-7&__feature.dashboardSceneSolo=true"
+          width="100%"
+          height="200"
+          frameborder="0"
+        ></iframe>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Panel 8</h4>
+      <div class="iframe-wrapper">
+        <iframe
+          src="http://localhost:3000/d-solo/smart-home/smart-home?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_INFLUXDB=ffc7lwmuo38xsf&var-bucket=iot_sensors&var-pi_id=PI1&refresh=5s&panelId=panel-8&__feature.dashboardSceneSolo=true"
+          width="100%"
+          height="200"
+          frameborder="0"
+        ></iframe>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Panel 9</h4>
+      <div class="iframe-wrapper">
+        <iframe
+          src="http://localhost:3000/d-solo/smart-home/smart-home?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_INFLUXDB=ffc7lwmuo38xsf&var-bucket=iot_sensors&var-pi_id=PI1&refresh=5s&panelId=panel-9&__feature.dashboardSceneSolo=true"
+          width="100%"
+          height="200"
+          frameborder="0"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-1">
+      <div class="card">
+        <h4>Panel 10</h4>
+        <div class="iframe-wrapper">
+          <iframe
+            src="http://localhost:3000/d-solo/smart-home/smart-home?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_INFLUXDB=ffc7lwmuo38xsf&var-bucket=iot_sensors&var-pi_id=PI1&refresh=5s&panelId=panel-10&__feature.dashboardSceneSolo=true"
+            width="100%"
+            height="260"
+            frameborder="0"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/PI1.js') }}"></script>
+{% endblock %}

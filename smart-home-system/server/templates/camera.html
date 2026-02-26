@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Single Camera View</h2>
+
+<div class="controls">
+  <input
+    type="text"
+    id="cameraUrl"
+    value="http://192.168.107.141:8080/?action=stream"
+    placeholder="Camera URL"
+  />
+</div>
+
+<div class="camera">
+  <img id="cameraFeed" src="http://192.168.107.141:8080/?action=stream" />
+</div>
+
+<script>
+  const input = document.getElementById("cameraUrl");
+  const img = document.getElementById("cameraFeed");
+
+  input.addEventListener("change", () => {
+    img.src = input.value;
+  });
+</script>
+
+{% endblock %}

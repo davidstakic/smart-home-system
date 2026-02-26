@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <h2>Global Alarm & Events</h2>
+    <p class="subtitle">
+      Pregled globalnog stanja sistema, broja osoba i alarm događaja.
+    </p>
+  </div>
+</section>
+
+<section class="mt-lg">
+  <div class="card">
+    <h3>Upravljanje alarmom (PIN)</h3>
+    <p class="subtitle">
+      Unos PIN koda za isključivanje alarma putem web aplikacije.
+    </p>
+
+    <form id="alarm_pin_form" class="form-inline" onsubmit="return submitAlarmPin(event);">
+      <label for="alarm_pin_input" class="form-label">PIN kod</label>
+      <input
+        type="password"
+        id="alarm_pin_input"
+        class="form-input"
+        maxlength="8"
+        autocomplete="off"
+        placeholder="npr. 1234"
+        required
+      />
+      <button type="submit">Potvrdi PIN</button>
+    </form>
+
+    <div id="alarm_pin_message" class="form-message"></div>
+
+    <div class="card-footer">
+      <span class="label">Izlazak iz ALARM stanja</span>
+    </div>
+  </div>
+</section>
+
+<section class="mt-lg">
+  <div class="card">
+    <h3>Aktivacija/deaktivacija sistema</h3>
+    <p class="subtitle">
+      Aktiviranje ili deaktiviranje sigurnosnog sistema putem web aplikacije.
+    </p>
+
+    <form id="alarm_arm_form" class="form-inline" onsubmit="return submitAlarmArm(event);">
+      <label for="alarm_arm_pin" class="form-label">PIN kod</label>
+      <input
+        type="password"
+        id="alarm_arm_pin"
+        class="form-input"
+        maxlength="8"
+        autocomplete="off"
+        placeholder="npr. 1234"
+        required
+      />
+
+      <button type="submit">Aktiviraj</button>
+      <button type="button" onclick="submitAlarmDisarm()">Deaktiviraj</button>
+    </form>
+
+    <div id="alarm_arm_message" class="form-message"></div>
+
+    <div class="card-footer">
+      <span class="label">Arm / disarm sistem</span>
+    </div>
+  </div>
+</section>
+
+
+<section class="grid grid-3" style="margin-top: 30px;">
+  <div class="card">
+    <h3>Alarm state</h3>
+    <div class="value-large" id="alarm_state_value">–</div>
+    <div class="status-dot" id="alarm_status_dot"></div>
+    <div class="card-footer">
+      <span class="label">Globalno stanje alarma</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>People count</h3>
+    <div class="value-large" id="people_count_value">–</div>
+    <div class="card-footer">
+      <span class="label">Broj osoba u objektu</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Scenariji</h3>
+    <ul class="scenario-list">
+      <li>1. Ulaz/izlaz osobe (DPIR1/2 + DUS1/2).</li>
+      <li>2. DS1/DS2 otvoren &gt; 5s ⇒ Alarm.</li>
+      <li>3. Nema osoba + DPIR1–3 ⇒ Alarm.</li>
+      <li>4. Pomeraj GSG ikone ⇒ Alarm.</li>
+    </ul>
+    <div class="card-footer">
+      <span class="label">Scenario demonstracije</span>
+    </div>
+  </div>
+</section>
+
+<section class="grid grid-2 mt-lg">
+  <div class="card">
+    <h3>People count – history</h3>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Vreme</th>
+            <th>Broj osoba</th>
+          </tr>
+        </thead>
+        <tbody id="people_series_body">
+          <tr><td colspan="2">Nema podataka.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer">
+      <span class="label">Serija people_count (backend)</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Alarm events</h3>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Vreme</th>
+            <th>PI</th>
+            <th>Measurement</th>
+            <th>Field</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody id="alarm_events_body">
+          <tr><td colspan="5">Nema podataka.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer">
+      <span class="label">Log alarm_state / alarm_event</span>
+    </div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/alarm.js') }}"></script>
+{% endblock %}
