@@ -47,19 +47,7 @@ class PI3_Controller:
         self.ir_sensor = IRReceiver(ir_pin, self.config.is_simulated("IR"))
 
         self.rgb_led = RGBLed(red_pin, green_pin, blue_pin, simulate=self.config.is_simulated("BRGB"))
-        self.lcd = LCD(
-            address=self.config.get_value("LCD_CONFIG", "I2C_ADDRESS", 0x27, int),
-            pin_rs=self.config.get_value("LCD_CONFIG", "PIN_RS", 0, int),
-            pin_e=self.config.get_value("LCD_CONFIG", "PIN_E", 2, int),
-            pins_db=(
-                self.config.get_value("LCD_CONFIG", "PIN_D4", 4, int),
-                self.config.get_value("LCD_CONFIG", "PIN_D5", 5, int),
-                self.config.get_value("LCD_CONFIG", "PIN_D6", 6, int),
-                self.config.get_value("LCD_CONFIG", "PIN_D7", 7, int),
-            ),
-            backlight_pin=self.config.get_value("LCD_CONFIG", "BACKLIGHT_PIN", 3, int),
-            simulate=self.config.is_simulated("LCD")
-        )
+        self.lcd = LCD(simulate=self.config.is_simulated("LCD"))
 
         self.device_info = self.config.get_device_info()
         mqtt_cfg = self.config.get_mqtt_config()
@@ -199,7 +187,7 @@ class PI3_Controller:
         for t in self.threads:
             t.join(timeout=1.0)
         self.rgb_led.cleanup()
-        self.lcd.cleanup()
+        self.lcd.destroy()
         GPIO.cleanup()
         print("Kraj programa.")
 
@@ -243,11 +231,9 @@ class PI3_Controller:
             elif device == "lcd":
                 action = payload.get("action")
                 if action == "display":
-                    line1 = payload.get("line1", "")
-                    line2 = payload.get("line2", "")
-
-                    self.lcd.display(line1, line2)
-                    self._send_measurement("lcd_message", line1 + " " + line2, "LCD")
+                    message = payload.get("message")
+                    self.lcd.display_message(message)
+                    self._send_measurement("lcd_message", message, "LCD")
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 

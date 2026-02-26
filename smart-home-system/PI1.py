@@ -131,15 +131,14 @@ class PI1_Controller:
                 print("[1] Uključi svetlo")
                 print("[2] Isključi svetlo")
                 print("[3] Toggle svetlo")
-                print("[4] Kratki beep")
-                print("[5] Dugi beep")
-                print("[6] Stop buzzer")
+                print("[4] Uključi buzzer")
+                print("[5] Isključi buzzer")
                 print("--- Test senzora / demo ---")
-                print("[7] TEST DPIR1 -> door_motion (tačka 1)")
-                print("[8] TEST DUS1 ulazak (tačka 2 ENTRY)")
-                print("[9] TEST DUS1 izlazak (tačka 2 EXIT)")
-                print("[10] TEST DS1 otvoreno 6s (tačka 3)")
-                print("[11] TEST DMS PIN 1234 (tačka 4A)")
+                print("[6] TEST DPIR1 -> door_motion (tačka 1)")
+                print("[7] TEST DUS1 ulazak (tačka 2 ENTRY)")
+                print("[8] TEST DUS1 izlazak (tačka 2 EXIT)")
+                print("[9] TEST DS1 otvoreno 6s (tačka 3)")
+                print("[10] TEST DMS PIN 1234 (tačka 4A)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
@@ -153,20 +152,18 @@ class PI1_Controller:
                     self.door_light.toggle()
                     self._send_measurement("door_light", 1.0 if self.door_light.is_on else 0.0, "DL")
                 elif choice == "4":
-                    self.buzzer.beep(pitch=440, duration=0.2)
+                    self.buzzer.on()
                 elif choice == "5":
-                    self.buzzer.continuous(pitch=440)
+                    self.buzzer.off()
                 elif choice == "6":
-                    self.buzzer.stop()
-                elif choice == "7":
                     self.test_dpir1_pulse()
-                elif choice == "8":
+                elif choice == "7":
                     self.test_dus1_entry_sequence()
-                elif choice == "9":
+                elif choice == "8":
                     self.test_dus1_exit_sequence()
-                elif choice == "10":
+                elif choice == "9":
                     self.test_ds1_open_alarm()
-                elif choice == "11":
+                elif choice == "10":
                     self.test_dms_pin()
                 elif choice == "0":
                     print("Izlaz...")
@@ -246,9 +243,9 @@ class PI1_Controller:
                     self._send_measurement("door_light", 0.0, "DL")
             elif device == "door_buzzer":
                 if action == "on":
-                    self.buzzer.continuous(5.0)
+                    self.buzzer.on()
                 elif action == "off":
-                    self.buzzer.stop()
+                    self.buzzer.off()
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 
