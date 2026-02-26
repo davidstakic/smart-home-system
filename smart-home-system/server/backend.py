@@ -245,11 +245,11 @@ def on_cmd_message(client, userdata, msg):
 
         pi_id, category, device = topic_parts[1], topic_parts[2], topic_parts[3]
         payload = json.loads(msg.payload.decode())
-        print(f"[MQTT] {msg.topic} -> {payload} : {category}")
+        # print(f"[MQTT] {msg.topic} -> {payload} : {category}")
 
         # Door motion
         if category == "sensor" and payload.get("sensor_type") == "door_motion" and payload.get("value") == 1.0:
-            print("DOOR MOTION" + str(pi_id))
+            # print("DOOR MOTION" + str(pi_id))
             print(str(people_count) + " " + security_state["mode"] + "\n")
             if pi_id == "PI1":
                 turn_light_for_10s(pi_id)
@@ -260,7 +260,7 @@ def on_cmd_message(client, userdata, msg):
 
         # Door distance
         if category == "sensor" and payload.get("sensor_type") == "door_distance":
-            print("DOOR DISTANCE " + str(pi_id))
+            # print("DOOR DISTANCE " + str(pi_id))
             value = payload.get("value")
             distance_history.setdefault(pi_id, deque(maxlen=20)).append((time.time(), value))
 
@@ -304,9 +304,6 @@ def on_cmd_message(client, userdata, msg):
                     timer.cancel()
                     door_button_timers.pop(pi_id, None)
 
-                if security_state["mode"] == "ALARM":
-                    disarm_system()
-
         # Kitchen button (BTN)
         if category == "sensor" and payload.get("sensor_type") == "kitchen_button":
             print("KITCHEN BUTTON " + str(pi_id))
@@ -346,19 +343,19 @@ def on_cmd_message(client, userdata, msg):
 
         # GSG movement
         if category == "sensor" and payload.get("sensor_type") == "gyroscope":
-            print("DOOR GSG " + str(pi_id))
+            # print("DOOR GSG " + str(pi_id))
             ax = payload.get("accel_x", 0)
             ay = payload.get("accel_y", 0)
             az = payload.get("accel_z", 0)
             magnitude = math.sqrt(ax * ax + ay * ay + az * az)
-            print(f"[GSG] Magnitude: {magnitude}")
+            # print(f"[GSG] Magnitude: {magnitude}")
             if magnitude > 1.5 or magnitude < 0.5:
                 if security_state["mode"] == "ARMED":
                     activate_alarm("Icon movement detected")
 
         # DHT sensors
         if category == "sensor" and payload.get("sensor_type", "").endswith(("_dht_humidity", "_dht_temperature")):
-            print("DHT SENSORS " + str(pi_id))
+            # print("DHT SENSORS " + str(pi_id))
             sensor_type = payload.get("sensor_type")
             value = payload.get("value")
             room = sensor_type.replace("_dht_humidity", "").replace("_dht_temperature", "")
@@ -374,7 +371,7 @@ def on_cmd_message(client, userdata, msg):
 
         # IR receiver
         if category == "sensor" and payload.get("sensor_type") == "bedroom_ir":
-            print("DOOR IR " + str(pi_id))
+            # print("DOOR IR " + str(pi_id))
             button_value = payload.get("value")
             handle_ir_mqtt(pi_id, IR_TO_COLOR.get(button_value))
 
@@ -407,5 +404,5 @@ def init_mqtt_and_loops():
 
     stop_event = threading.Event()
     threading.Thread(
-        target=stopwatch_loop, args=("PI1", stop_event), daemon=True
+        target=stopwatch_loop, args=("PI2", stop_event), daemon=True
     ).start()
