@@ -31,9 +31,13 @@ class Button:
 def run_button_loop(button_sensor, delay, callback, stop_event):
     while True:
         value = button_sensor.read()
+        
         if value not in [button_sensor.DOOR_CLOSED, button_sensor.DOOR_OPEN]:
             value = button_sensor.INVALID_VALUE
+            
         callback(value)
+        
         if stop_event.is_set():
             break
+        
         time.sleep(delay)

@@ -1,10 +1,13 @@
 import time
 import random
+import threading
 
 try:
     import RPi.GPIO as GPIO  # type: ignore
+    RUNNING_ON_PI = True
 except ImportError:
     from mock_rpi import GPIO
+    RUNNING_ON_PI = False
 
 
 class MembraneSwitch:
@@ -23,6 +26,9 @@ class MembraneSwitch:
         ]
 
         if not simulate:
+            GPIO.setwarnings(False)
+            GPIO.setmode(GPIO.BCM)
+
             for pin in self.row_pins:
                 GPIO.setup(pin, GPIO.OUT)
                 GPIO.output(pin, GPIO.LOW)
@@ -47,14 +53,15 @@ class MembraneSwitch:
             GPIO.output(row_pin, GPIO.LOW)
 
         return None
-    
+
+
 def run_membrane_loop(keypad, delay, callback, stop_event):
     while True:
         value = keypad.read()
 
         if value is not None:
             callback(value)
-            
+
         if stop_event.is_set():
             break
 

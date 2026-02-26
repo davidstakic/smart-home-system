@@ -8,7 +8,7 @@ except ImportError:
     from mock_rpi import GPIO
     RUNNING_ON_PI = False
 
-class UltrasonicSensor:
+class UDS:
     INVALID_DISTANCE = -1.0
 
     def __init__(self, trigger_pin, echo_pin, simulate=False):
@@ -35,18 +35,19 @@ class UltrasonicSensor:
             time.sleep(0.00001)
             GPIO.output(self.trigger_pin, False)
 
+            pulse_start = time.time()
+            pulse_end = time.time()
+
             timeout_start = time.time()
             while GPIO.input(self.echo_pin) == 0:
                 if time.time() - timeout_start > 0.02:
-                    self.last_distance = self.INVALID_DISTANCE
-                    return self.last_distance
+                    return self.INVALID_DISTANCE
                 pulse_start = time.time()
 
             timeout_start = time.time()
             while GPIO.input(self.echo_pin) == 1:
                 if time.time() - timeout_start > 0.02:
-                    self.last_distance = self.INVALID_DISTANCE
-                    return self.last_distance
+                    return self.INVALID_DISTANCE
                 pulse_end = time.time()
 
             pulse_duration = pulse_end - pulse_start
@@ -62,6 +63,8 @@ def run_ultrasonic_loop(sensor, delay, callback, stop_event):
     while True:
         distance = sensor.read()
         callback(distance)
+        
         if stop_event.is_set():
             break
+        
         time.sleep(delay)

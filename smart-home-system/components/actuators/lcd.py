@@ -1,84 +1,47 @@
 import time
 
 try:
-    import smbus # type: ignore
+    from PCF8574 import PCF8574_GPIO
+    from Adafruit_LCD1602 import Adafruit_CharLCD
     RUNNING_ON_PI = True
 except ImportError:
     RUNNING_ON_PI = False
 
 
-class LCD16x2:
-
-    LCD_WIDTH = 16
-    LCD_CHR = 1
-    LCD_CMD = 0
-
-    LCD_LINE_1 = 0x80
-    LCD_LINE_2 = 0xC0
-
-    ENABLE = 0b00000100
-
-    def __init__(self, address=0x27, bus=1, simulate=False):
-        self.address = address
+class LCD:
+    def __init__(self, simulate):
         self.simulate = simulate
+        self.PCF8574_address = 0x27
+        self.PCF8574A_address = 0x3F
 
-        if not simulate and RUNNING_ON_PI:
-            self.bus = smbus.SMBus(bus)
-            self._init_lcd()
-        else:
-            self.bus = None
-
-    def _write_byte(self, data):
         if not self.simulate:
-            self.bus.write_byte(self.address, data)
+            try:
+                self.mcp = PCF8574_GPIO(self.PCF8574_address)
+            except:
+                try:
+                    self.mcp = PCF8574_GPIO(self.PCF8574A_address)
+                except:
+                    print('I2C Address Error !')
+                    exit(1)
 
-    def _toggle_enable(self, bits):
-        time.sleep(0.0005)
-        self._write_byte(bits | self.ENABLE)
-        time.sleep(0.0005)
-        self._write_byte(bits & ~self.ENABLE)
-        time.sleep(0.0005)
+            self.lcd = Adafruit_CharLCD(
+                pin_rs=0,
+                pin_e=2,
+                pins_db=[4, 5, 6, 7],
+                GPIO=self.mcp
+            )
 
-    def _send(self, bits, mode):
-        high_bits = mode | (bits & 0xF0)
-        low_bits = mode | ((bits << 4) & 0xF0)
+            self.mcp.output(3, 1)
+            self.lcd.begin(16, 2)
 
-        self._write_byte(high_bits)
-        self._toggle_enable(high_bits)
+    def display_message(self, message: str):
+        if not self.simulate:
+            self.lcd.clear()
+            self.lcd.setCursor(0, 0)
+            self.lcd.message(message)
+        else:
+            print("[LCD] " + message)
 
-        self._write_byte(low_bits)
-        self._toggle_enable(low_bits)
-
-    def _init_lcd(self):
-        time.sleep(0.02)
-        self._send(0x33, self.LCD_CMD)
-        self._send(0x32, self.LCD_CMD)
-        self._send(0x06, self.LCD_CMD)
-        self._send(0x0C, self.LCD_CMD)
-        self._send(0x28, self.LCD_CMD)
-        self._send(0x01, self.LCD_CMD)
-        time.sleep(0.005)
-
-    def clear(self):
-        if self.simulate:
-            print("[SIMULATION] LCD CLEAR")
-            return
-        self._send(0x01, self.LCD_CMD)
-
-    def display(self, text, line=1):
-        text = text.ljust(self.LCD_WIDTH, " ")
-
-        if self.simulate:
-            print(f"[SIMULATION] LCD Line {line}: {text}")
-            return
-
-        if line == 1:
-            self._send(self.LCD_LINE_1, self.LCD_CMD)
-        elif line == 2:
-            self._send(self.LCD_LINE_2, self.LCD_CMD)
-
-        for char in text:
-            self._send(ord(char), self.LCD_CHR)
-
-    def cleanup(self):
-        self.clear()
+    def destroy(self):
+        if not self.simulate:
+            self.lcd.clear()

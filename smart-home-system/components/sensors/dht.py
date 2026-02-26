@@ -9,7 +9,7 @@ except ImportError:
     RUNNING_ON_PI = False
 
 
-class DHTSensor:
+class DHT:
     DHTLIB_OK = 0
     DHTLIB_ERROR_CHECKSUM = -1
     DHTLIB_ERROR_TIMEOUT = -2
@@ -81,23 +81,21 @@ class DHTSensor:
             return self.DHTLIB_ERROR_TIMEOUT
 
     def read(self):
-        if self.simulate:
-            self.humidity = round(random.uniform(30.0, 70.0), 1)
-            self.temperature = round(random.uniform(20.0, 30.0), 1)
-            return self.humidity, self.temperature, self.DHTLIB_OK
-
         code = self._read_sensor()
+
         if code != self.DHTLIB_OK:
             self.humidity = self.DHTLIB_INVALID_VALUE
             self.temperature = self.DHTLIB_INVALID_VALUE
             return self.humidity, self.temperature, code
 
-        self.humidity = self.bits[0]
-        self.temperature = self.bits[2] + self.bits[3] * 0.1
-        sumChk = (self.bits[0] + self.bits[1] + self.bits[2] + self.bits[3]) & 0xFF
-        if self.bits[4] != sumChk:
-            code = self.DHTLIB_ERROR_CHECKSUM
-        return self.humidity, self.temperature, code
+        if not self.simulate:
+            self.humidity = self.bits[0]
+            self.temperature = self.bits[2] + self.bits[3] * 0.1
+            sumChk = (self.bits[0] + self.bits[1] + self.bits[2] + self.bits[3]) & 0xFF
+            if self.bits[4] != sumChk:
+                return self.humidity, self.temperature, self.DHTLIB_ERROR_CHECKSUM
+
+        return self.humidity, self.temperature, self.DHTLIB_OK
 
 
 def parseCheckCode(code):
@@ -112,7 +110,11 @@ def parseCheckCode(code):
 
 
 def run_dht_loop(sensor, delay, callback, stop_event):
-    while not stop_event.is_set():
+    while True:
         humidity, temperature, code = sensor.read()
         callback(humidity, temperature, parseCheckCode(code))
+        
+        if stop_event.is_set():
+            break
+        
         time.sleep(delay)

@@ -5,16 +5,16 @@ import time
 import paho.mqtt.client as mqtt
 import json
 
-from components.sensors.dht import DHTSensor, run_dht_loop
-from components.sensors.motion_sensor import MotionSensor, run_motion_loop
+from components.sensors.dht import DHT, run_dht_loop
+from components.sensors.pir import PIR, run_motion_loop
 from components.sensors.infrared import IRReceiver, run_ir_loop
 from components.actuators.rgb_led import RGBLed
-from components.actuators.lcd import LCD16x2
+from components.actuators.lcd import LCD
 from config.config import Config
 from mqtt_batch_sender import MQTTBatchSender
 
 try:
-    import RPi.GPIO as GPIO  # type: ignore
+    import RPi.GPIO as GPIO
     RUNNING_ON_PI = True
 except ImportError:
     from mock_rpi import GPIO
@@ -41,13 +41,13 @@ class PI3_Controller:
         dht2_pin = self.config.get_pin("DHT2_PIN")
         dpir3_pin = self.config.get_pin("DPIR3_PIN")
 
-        self.dht1 = DHTSensor(dht1_pin, self.config.is_simulated("DHT1"))
-        self.dht2 = DHTSensor(dht2_pin, self.config.is_simulated("DHT2"))
-        self.dpir3 = MotionSensor(dpir3_pin, self.config.is_simulated("DPIR3"))
+        self.dht1 = DHT(dht1_pin, self.config.is_simulated("DHT1"))
+        self.dht2 = DHT(dht2_pin, self.config.is_simulated("DHT2"))
+        self.dpir3 = PIR(dpir3_pin, self.config.is_simulated("DPIR3"))
         self.ir_sensor = IRReceiver(ir_pin, self.config.is_simulated("IR"))
 
         self.rgb_led = RGBLed(red_pin, green_pin, blue_pin, simulate=self.config.is_simulated("BRGB"))
-        self.lcd = LCD16x2(address=self.config.get_value("LCD_CONFIG", "I2C_ADDRESS", 0x27, int), simulate=self.config.is_simulated("LCD"))
+        self.lcd = LCD(simulate=self.config.is_simulated("LCD"))
 
         self.device_info = self.config.get_device_info()
         mqtt_cfg = self.config.get_mqtt_config()
@@ -94,35 +94,35 @@ class PI3_Controller:
         self._send_measurement("bedroom_ir", value, "IR")
 
     def start_sensors(self):
-        return
-        # cfg = self.config
+        # return
+        cfg = self.config
 
-        # self.threads.append(threading.Thread(
-        #     target=run_dht_loop,
-        #     args=(self.dht1, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht1_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_dht_loop,
+            args=(self.dht1, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht1_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_dht_loop,
-        #     args=(self.dht2, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht2_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_dht_loop,
+            args=(self.dht2, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht2_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_motion_loop,
-        #     args=(self.dpir3, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_motion_loop,
+            args=(self.dpir3, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_ir_loop,
-        #     args=(self.ir_sensor, cfg.get_value("SENSOR_CONFIG", "IR_DELAY", 0.2, float), self._ir_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_ir_loop,
+            args=(self.ir_sensor, cfg.get_value("SENSOR_CONFIG", "IR_DELAY", 0.2, float), self._ir_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # for t in self.threads:
-        #     t.start()
+        for t in self.threads:
+            t.start()
 
     def actuator_menu(self):
         try:
@@ -187,7 +187,7 @@ class PI3_Controller:
         for t in self.threads:
             t.join(timeout=1.0)
         self.rgb_led.cleanup()
-        self.lcd.cleanup()
+        self.lcd.destroy()
         GPIO.cleanup()
         print("Kraj programa.")
 
@@ -220,23 +220,20 @@ class PI3_Controller:
             payload = json.loads(msg.payload.decode())
             print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
 
-            # if device == "rgb_led":
-            #     color = payload.get("color")
-            #     if color:
-            #         if color in ["*", "#"]:
-            #             self.rgb_led.turn_off()
-            #         else:
-            #             self.rgb_led.set_color(color)
-            #         self._send_measurement("rgb_led", color, "BRGB")
-            # elif device == "lcd":
-            #     action = payload.get("action")
-            #     if action == "display":
-            #         line1 = payload.get("line1", "")
-            #         line2 = payload.get("line2", "")
-
-            #         self.lcd.display(line1, line=1)
-            #         self.lcd.display(line2, line=2)
-            #         self._send_measurement("lcd_message", line1 + " " + line2, "LCD")
+            if device == "rgb_led":
+                color = payload.get("color")
+                if color:
+                    if color in ["*", "#"]:
+                        self.rgb_led.turn_off()
+                    else:
+                        self.rgb_led.set_color(color)
+                    self._send_measurement("rgb_led", color, "BRGB")
+            elif device == "lcd":
+                action = payload.get("action")
+                if action == "display":
+                    message = payload.get("message")
+                    self.lcd.display_message(message)
+                    self._send_measurement("lcd_message", message, "LCD")
         except Exception as e:
             print(f"[CMD ERROR] {e}")
 
