@@ -19,7 +19,8 @@ from backend import (
     timer_config_pi2,
     COLORS,
     handle_ir_mqtt,
-    activate_alarm
+    activate_alarm,
+    people_count
 )
 
 app = Flask(__name__)
@@ -80,7 +81,6 @@ def api_people_series():
 
 @app.route("/api/actuator/rgb_led", methods=["POST"])
 def control_rgb_led():
-    # stari endpoint, ostavljen radi kompatibilnosti (koristi PI3)
     data = request.json or {}
     color = data.get("color", "OFF")
     command_client.publish(
@@ -100,9 +100,6 @@ def pi3_set_rgb():
         }), 400
 
     handle_ir_mqtt('PI3', color)
-
-    # po želji uključi log u Influx
-    # write_influx("PI3", "rgb_led", color, device_name="BedroomRGB")
 
     return jsonify({"success": True, "color": color})
 
@@ -126,15 +123,13 @@ def pi3_set_lcd():
         json.dumps({"text": text})
     )
 
-    # write_influx("PI3", "lcd_message", text, device_name="LivingRoomLCD")
-
     return jsonify({"success": True, "text": text})
 
 # ---------- Alarm arm/deactivate ----------
 
 @app.route("/api/alarm/arm", methods=["POST"])
 def api_alarm_arm():
-    global arming_timer, entry_timer  # definisani u backend.security_state scope-u
+    global arming_timer, entry_timer
     data = request.json or {}
     pin = str(data.get("pin", "")).strip()
     armed = bool(data.get("armed", False))
@@ -164,8 +159,6 @@ def api_alarm_deactivate():
         security_state["mode"] = "ARMED"
         write_influx("SERVER", "alarm_state", 0.0, device_name="SecuritySystem")
         send_mqtt_command("PI1", "door_buzzer", "off")
-        # disarm_system()
-        # write_influx("SERVER", "alarm_event", "disarmed_web", device_name="SecuritySystem")
 
     if security_state["mode"] == "ARMED" and pin != VALID_PIN:
         activate_alarm()

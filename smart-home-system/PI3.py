@@ -14,7 +14,7 @@ from config.config import Config
 from mqtt_batch_sender import MQTTBatchSender
 
 try:
-    import RPi.GPIO as GPIO  # type: ignore
+    import RPi.GPIO as GPIO
     RUNNING_ON_PI = True
 except ImportError:
     from mock_rpi import GPIO

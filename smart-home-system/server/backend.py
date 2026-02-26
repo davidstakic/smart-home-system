@@ -30,7 +30,7 @@ entered_pin = ""
 people_count = 0
 
 dht_data = {}          # {pi_id: {room: {"humidity": val, "temperature": val}}}
-lcd_timers = {}        # {pi_id: Timer}
+is_lcd_cycle_running = False # Zastavica da osiguramo samo jedan globalni tajmer
 LCD_SWITCH_DELAY = 5   # seconds between DHT rotations on LCD
 
 COLORS = ["RED", "GREEN", "BLUE", "YELLOW", "PURPLE", "LIGHTBLUE", "WHITE"]
@@ -69,7 +69,9 @@ command_client.loop_start()
 def send_mqtt_command(pi_id, device, action_payload):
     """Publish a command to a given PI/device."""
     topic = f"smart_home/{pi_id}/cmd/{device}"
+    print(topic)
     payload = action_payload if isinstance(action_payload, dict) else {"action": action_payload}
+    print(payload)
     command_client.publish(topic, json.dumps(payload))
 
 
@@ -99,8 +101,8 @@ def turn_light_for_10s(pi_id):
 
 
 def detect_direction(pi_id):
-    """Update people_count based on ultrasonic distance history."""
     global people_count
+
     history = distance_history.get(pi_id)
     if not history or len(history) < 5:
         return
@@ -109,12 +111,20 @@ def detect_direction(pi_id):
     diff = values[-1] - values[0]
     threshold = 15
 
+    changed = False
+
     if diff < -threshold:
         people_count += 1
         print(f"[ENTRY] Person entered. Count = {people_count}")
+        changed = True
+
     elif diff > threshold and people_count > 0:
         people_count -= 1
         print(f"[EXIT] Person exited. Count = {people_count}")
+        changed = True
+
+    if changed:
+        write_influx("SERVER", "people_count", float(people_count), device_name="SecuritySystem")
 
 # ========== ALARM LOGIKA ==========
 
@@ -157,47 +167,48 @@ def disarm_system():
 
 # ========== LCD / DHT LOGIKA ==========
 
-def start_lcd_cycle(pi_id):
-    """Ciklično prikazivanje DHT1-3 na LCD-u."""
+def start_lcd_cycle():
+    """Jedan globalni ciklus koji prolazi kroz sve DHT senzore sa svih PI uređaja."""
     index = 0
 
     def cycle():
         nonlocal index
-        rooms = list(dht_data.get(pi_id, {}).keys())
-        if not rooms:
-            return
         
-        print("LCD")
+        all_rooms = []
+        for p_id, rooms in dht_data.items():
+            for room_name, sensor_vals in rooms.items():
+                all_rooms.append((room_name, sensor_vals))
 
-        room = rooms[index % len(rooms)]
-        index += 1
-        sensor = dht_data[pi_id][room]
-        if sensor["humidity"] is None or sensor["temperature"] is None:
+        if not all_rooms:
             timer = threading.Timer(LCD_SWITCH_DELAY, cycle)
-            lcd_timers[pi_id] = timer
             timer.start()
             return
 
-        line1 = f"{room.capitalize()[:6]} T:{sensor['temperature']:.1f}C"
-        line2 = f"H:{sensor['humidity']:.1f}%"
-        line1 = line1[:16]
-        line2 = line2[:16]
-        message = f"{line1}\n{line2}"
-        lcd_payload = {
-            "action": "display",
-            "message": message
-        }
-        command_client.publish(
-            f"smart_home/{pi_id}/cmd/lcd",
-            json.dumps(lcd_payload)
-        )
+        room_name, sensor = all_rooms[index % len(all_rooms)]
+        index += 1
+        
+        if sensor["humidity"] is not None and sensor["temperature"] is not None:
+            line1 = f"{room_name.capitalize()[:6]} T:{sensor['temperature']:.1f}C"
+            line2 = f"H:{sensor['humidity']:.1f}%"
+            line1 = line1[:16]
+            line2 = line2[:16]
+            message = f"{line1}\n{line2}"
+            
+            lcd_payload = {
+                "action": "display",
+                "message": message
+            }
+            print(f"[LCD CYCLE] Slanje na PI3 -> {lcd_payload}")
+            
+            command_client.publish(
+                "smart_home/PI3/cmd/lcd",
+                json.dumps(lcd_payload)
+            )
 
         timer = threading.Timer(LCD_SWITCH_DELAY, cycle)
-        lcd_timers[pi_id] = timer
         timer.start()
 
     cycle()
-
 
 def handle_ir_mqtt(pi_id, color):
     if color:
@@ -245,11 +256,9 @@ def on_cmd_message(client, userdata, msg):
 
         pi_id, category, device = topic_parts[1], topic_parts[2], topic_parts[3]
         payload = json.loads(msg.payload.decode())
-        # print(f"[MQTT] {msg.topic} -> {payload} : {category}")
 
         # Door motion
         if category == "sensor" and payload.get("sensor_type") == "door_motion" and payload.get("value") == 1.0:
-            # print("DOOR MOTION" + str(pi_id))
             print(str(people_count) + " " + security_state["mode"] + "\n")
             if pi_id == "PI1":
                 turn_light_for_10s(pi_id)
@@ -260,7 +269,6 @@ def on_cmd_message(client, userdata, msg):
 
         # Door distance
         if category == "sensor" and payload.get("sensor_type") == "door_distance":
-            # print("DOOR DISTANCE " + str(pi_id))
             value = payload.get("value")
             distance_history.setdefault(pi_id, deque(maxlen=20)).append((time.time(), value))
 
@@ -269,15 +277,12 @@ def on_cmd_message(client, userdata, msg):
             value = payload.get("value")
 
             if value == 1.0:
-                # zapamti vreme
                 door_open_start[pi_id] = time.time()
 
-                # ako postoji stari timer – otkaži ga
                 old_timer = door_button_timers.get(pi_id)
                 if old_timer:
                     old_timer.cancel()
 
-                # startuj novi timer od 5s
                 def check_door_still_open():
                     if pi_id in door_open_start:
                         if security_state["mode"] == "ARMED":
@@ -289,7 +294,6 @@ def on_cmd_message(client, userdata, msg):
                         elif security_state["mode"] != "DISARMED":
                             activate_alarm()
                         else:
-                            # vrata otvorena >5s čak i kad je DISARMED
                             activate_alarm()
 
                 t = threading.Timer(5.0, check_door_still_open)
@@ -297,7 +301,6 @@ def on_cmd_message(client, userdata, msg):
                 t.start()
 
             else:
-                # stiglo 0.0 – zatvorena vrata: očisti stanje i otkaži timer
                 door_open_start.pop(pi_id, None)
                 timer = door_button_timers.get(pi_id)
                 if timer:
@@ -338,44 +341,46 @@ def on_cmd_message(client, userdata, msg):
                         arm_system()
                 else:
                     print("[SECURITY] Incorrect PIN")
+                    activate_alarm()
 
                 entered_pin = ""
 
         # GSG movement
         if category == "sensor" and payload.get("sensor_type") == "gyroscope":
-            # print("DOOR GSG " + str(pi_id))
             ax = payload.get("accel_x", 0)
             ay = payload.get("accel_y", 0)
             az = payload.get("accel_z", 0)
             magnitude = math.sqrt(ax * ax + ay * ay + az * az)
-            # print(f"[GSG] Magnitude: {magnitude}")
             if magnitude > 1.5 or magnitude < 0.5:
                 if security_state["mode"] == "ARMED":
                     activate_alarm("Icon movement detected")
 
         # DHT sensors
         if category == "sensor" and payload.get("sensor_type", "").endswith(("_dht_humidity", "_dht_temperature")):
-            # print("DHT SENSORS " + str(pi_id))
             sensor_type = payload.get("sensor_type")
             value = payload.get("value")
             room = sensor_type.replace("_dht_humidity", "").replace("_dht_temperature", "")
+            
             dht_data.setdefault(pi_id, {}).setdefault(
                 room, {"humidity": None, "temperature": None}
             )
+            
             if sensor_type.endswith("_humidity"):
                 dht_data[pi_id][room]["humidity"] = value
             else:
                 dht_data[pi_id][room]["temperature"] = value
-            if pi_id not in lcd_timers:
-                start_lcd_cycle(pi_id)
+                
+            global is_lcd_cycle_running
+            if not is_lcd_cycle_running:
+                is_lcd_cycle_running = True
+                start_lcd_cycle()
 
         # IR receiver
         if category == "sensor" and payload.get("sensor_type") == "bedroom_ir":
-            # print("DOOR IR " + str(pi_id))
             button_value = payload.get("value")
             handle_ir_mqtt(pi_id, IR_TO_COLOR.get(button_value))
 
-        # Commands (door_light, door_buzzer) – log u Influx
+        # Commands (door_light, door_buzzer)
         if category == "cmd":
             action = payload.get("action")
             if device in ["door_light", "door_buzzer"]:

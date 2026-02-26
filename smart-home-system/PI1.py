@@ -15,7 +15,7 @@ from config.config import Config
 from mqtt_batch_sender import MQTTBatchSender
 
 try:
-    import RPi.GPIO as GPIO # type: ignore
+    import RPi.GPIO as GPIO
     RUNNING_ON_PI = True
 except ImportError:
     from mock_rpi import GPIO
@@ -95,30 +95,22 @@ class PI1_Controller:
         self.mqtt_sender.enqueue(payload)
 
     def _door_callback(self, value):
-        # ts = datetime.now().strftime("%H:%M:%S")
-        # print(f"[{ts}] DS1 Door Button -> {value}")
         self._send_measurement("door_button", value, "DS1")
 
     def _motion_callback(self, value):
-        # ts = datetime.now().strftime("%H:%M:%S")
-        # print(f"[{ts}] DPIR1 Motion -> {value}")
         self._send_measurement("door_motion", value, "DPIR1")
 
     def _ultrasonic_callback(self, value):
-        # ts = datetime.now().strftime("%H:%M:%S")
-        # print(f"[{ts}] DUS1 Distance -> {value}")
         self._send_measurement("door_distance", value, "DUS1")
 
     def _membrane_callback(self, value):
-        # ts = datetime.now().strftime("%H:%M:%S")
-        # print(f"[{ts}] DMS Membrane -> {value}")
         self._send_measurement("door_membrane", value, "DMS")
 
     def start_sensors(self):
-        # self.threads.append(threading.Thread(target=run_button_loop, args=(self.door_sensor, self.config.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event), daemon=True))
-        # self.threads.append(threading.Thread(target=run_motion_loop, args=(self.motion_sensor, self.config.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event), daemon=True))
-        # self.threads.append(threading.Thread(target=run_ultrasonic_loop, args=(self.ultrasonic, self.config.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event), daemon=True))
-        # self.threads.append(threading.Thread(target=run_membrane_loop, args=(self.membrane_switch, self.config.get_value("SENSOR_CONFIG", "DMS_DELAY", 0.2, float), self._membrane_callback, self.stop_event), daemon=True))
+        self.threads.append(threading.Thread(target=run_button_loop, args=(self.door_sensor, self.config.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event), daemon=True))
+        self.threads.append(threading.Thread(target=run_motion_loop, args=(self.motion_sensor, self.config.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event), daemon=True))
+        self.threads.append(threading.Thread(target=run_ultrasonic_loop, args=(self.ultrasonic, self.config.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event), daemon=True))
+        self.threads.append(threading.Thread(target=run_membrane_loop, args=(self.membrane_switch, self.config.get_value("SENSOR_CONFIG", "DMS_DELAY", 0.2, float), self._membrane_callback, self.stop_event), daemon=True))
 
         for t in self.threads:
             t.start()
@@ -139,6 +131,7 @@ class PI1_Controller:
                 print("[8] TEST DUS1 izlazak (tačka 2 EXIT)")
                 print("[9] TEST DS1 otvoreno 6s (tačka 3)")
                 print("[10] TEST DMS PIN 1234 (tačka 4A)")
+                print("[11] TEST DMS PIN 1111 (invalid)")
                 print("[0] Izlaz")
                 choice = input("Odaberi opciju: ").strip()
 
@@ -165,6 +158,8 @@ class PI1_Controller:
                     self.test_ds1_open_alarm()
                 elif choice == "10":
                     self.test_dms_pin()
+                elif choice == "11":
+                    self.test_dms_pin_invalid()
                 elif choice == "0":
                     print("Izlaz...")
                     break
@@ -176,7 +171,7 @@ class PI1_Controller:
     def cleanup(self):
         print("\nČišćenje resursa...")
         self.stop_event.set()
-        self.buzzer.stop()
+        self.buzzer.off()
         for t in self.threads:
             t.join(timeout=1.0)
         GPIO.cleanup()
@@ -187,7 +182,7 @@ class PI1_Controller:
         self.actuator_menu()
         self.cleanup()
 
-        # ===== TEST / DEMO FUNKCIJE =====
+    # ===== TEST / DEMO FUNKCIJE =====
 
     def test_dpir1_pulse(self):
         """Tačka 1: DPIR1 -> door_motion=1.0 jednokratno."""
@@ -218,11 +213,22 @@ class PI1_Controller:
         print("[TEST] DS1 door_button = 0.0 (zatvaranje)")
         # self._send_measurement("door_button", 0.0, "DS1")
 
-    def test_dms_pin(self):
+    def test_dms_pin_invalid(self):
         """Tačka 4A: DMS PIN 1234."""
-        pin = "1234"
+        pin = "1"
         print(f"[TEST] DMS door_membrane = {pin}")
         self._send_measurement("door_membrane", pin, "DMS")
+        self._send_measurement("door_membrane", pin, "DMS")
+        self._send_measurement("door_membrane", pin, "DMS")
+        self._send_measurement("door_membrane", pin, "DMS")
+    
+    def test_dms_pin(self):
+        """Tačka 4A: DMS PIN 1234."""
+        print(f"[TEST] DMS door_membrane = 1234")
+        self._send_measurement("door_membrane", "1", "DMS")
+        self._send_measurement("door_membrane", "2", "DMS")
+        self._send_measurement("door_membrane", "3", "DMS")
+        self._send_measurement("door_membrane", "4", "DMS")
 
     def _on_cmd_message(self, client, userdata, msg):
         try:

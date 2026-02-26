@@ -121,14 +121,6 @@ class PI2_Controller:
 
     def _gyro_callback(self, payload):
         self._send_measurement("gyroscope", payload, "GSG")
-    # def _gyro_callback(self, payload):
-    #     self._send_measurement("gyro_accel_x", payload["accel_x"], "GSG")
-    #     self._send_measurement("gyro_accel_y", payload["accel_y"], "GSG")
-    #     self._send_measurement("gyro_accel_z", payload["accel_z"], "GSG")
-    #     self._send_measurement("gyro_gyro_x", payload["gyro_x"], "GSG")
-    #     self._send_measurement("gyro_gyro_y", payload["gyro_y"], "GSG")
-    #     self._send_measurement("gyro_gyro_z", payload["gyro_z"], "GSG")
-
 
     def start_sensors(self):
         # return
@@ -302,7 +294,7 @@ class PI2_Controller:
             payload = json.loads(msg.payload.decode())
             print(f"[CMD RECEIVED] {msg.topic} -> {payload}")
 
-            if device == "timer_config":
+            if device == "4sd":
                 value = payload.get("value")
                 blink = payload.get("blink")
                 if value is not None:
