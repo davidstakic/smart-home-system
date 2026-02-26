@@ -131,41 +131,41 @@ class PI2_Controller:
 
 
     def start_sensors(self):
-        return
-        # cfg = self.config
-        # self.threads.append(threading.Thread(
-        #     target=run_button_loop,
-        #     args=(self.door_sensor, cfg.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event),
-        #     daemon=True
-        # ))
-        # self.threads.append(threading.Thread(
-        #     target=run_motion_loop,
-        #     args=(self.motion_sensor, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
-        #     daemon=True
-        # ))
-        # self.threads.append(threading.Thread(
-        #     target=run_ultrasonic_loop,
-        #     args=(self.ultrasonic, cfg.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event),
-        #     daemon=True
-        # ))
-        # self.threads.append(threading.Thread(
-        #     target=run_button_loop,
-        #     args=(self.button, cfg.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._btn_callback, self.stop_event),
-        #     daemon=True
-        # ))
-        # self.threads.append(threading.Thread(
-        #     target=run_dht_loop,
-        #     args=(self.dht_sensor, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht_callback, self.stop_event),
-        #     daemon=True
-        # ))
-        # self.threads.append(threading.Thread(
-        #     target=run_gyro_loop,
-        #     args=(self.gyroscope, cfg.get_value("SENSOR_CONFIG", "GSG_DELAY", 0.1, float), self._gyro_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        # return
+        cfg = self.config
+        self.threads.append(threading.Thread(
+            target=run_button_loop,
+            args=(self.door_sensor, cfg.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._door_callback, self.stop_event),
+            daemon=True
+        ))
+        self.threads.append(threading.Thread(
+            target=run_motion_loop,
+            args=(self.motion_sensor, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
+            daemon=True
+        ))
+        self.threads.append(threading.Thread(
+            target=run_ultrasonic_loop,
+            args=(self.ultrasonic, cfg.get_value("SENSOR_CONFIG", "ULTRASONIC_DELAY", 0.5, float), self._ultrasonic_callback, self.stop_event),
+            daemon=True
+        ))
+        self.threads.append(threading.Thread(
+            target=run_button_loop,
+            args=(self.button, cfg.get_value("SENSOR_CONFIG", "BTN_DELAY", 0.5, float), self._btn_callback, self.stop_event),
+            daemon=True
+        ))
+        self.threads.append(threading.Thread(
+            target=run_dht_loop,
+            args=(self.dht_sensor, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht_callback, self.stop_event),
+            daemon=True
+        ))
+        self.threads.append(threading.Thread(
+            target=run_gyro_loop,
+            args=(self.gyroscope, cfg.get_value("SENSOR_CONFIG", "GSG_DELAY", 0.1, float), self._gyro_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # for t in self.threads:
-        #     t.start()
+        for t in self.threads:
+            t.start()
 
     def actuator_menu(self):
         try:

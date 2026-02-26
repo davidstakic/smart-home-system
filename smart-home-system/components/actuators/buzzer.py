@@ -48,7 +48,7 @@ class Buzzer:
 
         self._notify(0.0)
 
-    def beep(self, pitch=440, duration=0.2):
+    def beep(self, pitch=440, duration=2.0):
         self.stop()
         self._stop_event.clear()
 

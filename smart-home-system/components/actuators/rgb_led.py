@@ -31,7 +31,7 @@ class RGBLed:
         self.turn_off()
 
     def set_color(self, color_name):
-        color_name = color_name.lower()
+        color_name = color_name.upper()
 
         if color_name not in self.COLORS:
             print(f"Nepoznata boja: {color_name}")

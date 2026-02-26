@@ -246,7 +246,7 @@ class PI1_Controller:
                     self._send_measurement("door_light", 0.0, "DL")
             elif device == "door_buzzer":
                 if action == "on":
-                    self.buzzer.continuous(5.0)
+                    self.buzzer.beep()
                 elif action == "off":
                     self.buzzer.stop()
         except Exception as e:

@@ -106,35 +106,35 @@ class PI3_Controller:
         self._send_measurement("bedroom_ir", value, "IR")
 
     def start_sensors(self):
-        return
-        # cfg = self.config
+        # return
+        cfg = self.config
 
-        # self.threads.append(threading.Thread(
-        #     target=run_dht_loop,
-        #     args=(self.dht1, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht1_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_dht_loop,
+            args=(self.dht1, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht1_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_dht_loop,
-        #     args=(self.dht2, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht2_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_dht_loop,
+            args=(self.dht2, cfg.get_value("SENSOR_CONFIG", "DHT_DELAY", 2.0, float), self._dht2_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_motion_loop,
-        #     args=(self.dpir3, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_motion_loop,
+            args=(self.dpir3, cfg.get_value("SENSOR_CONFIG", "PIR_TIMEOUT", 30, float), self._motion_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # self.threads.append(threading.Thread(
-        #     target=run_ir_loop,
-        #     args=(self.ir_sensor, cfg.get_value("SENSOR_CONFIG", "IR_DELAY", 0.2, float), self._ir_callback, self.stop_event),
-        #     daemon=True
-        # ))
+        self.threads.append(threading.Thread(
+            target=run_ir_loop,
+            args=(self.ir_sensor, cfg.get_value("SENSOR_CONFIG", "IR_DELAY", 0.2, float), self._ir_callback, self.stop_event),
+            daemon=True
+        ))
 
-        # for t in self.threads:
-        #     t.start()
+        for t in self.threads:
+            t.start()
 
     def actuator_menu(self):
         try:
